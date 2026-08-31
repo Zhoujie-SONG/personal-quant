@@ -1,0 +1,17 @@
+.env
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.coverage
+htmlcov/
+*.egg-info/
+dist/
+build/
+
+# Runtime data. Keep directory sentinels and examples only.
+data/raw/*
+!data/raw/.gitkeep
+data/canonical/*
+!data/canonical/.gitkeep
+

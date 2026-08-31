@@ -1,0 +1,18 @@
+# Schema example only. The production 15-30 asset universe belongs to P0 and is
+# intentionally not frozen during M0/M1A.
+version: example
+frozen_at: null
+logical_assets:
+  - id: CSI300
+    name: 沪深300
+    sleeve: equity_broad
+    cluster: china_large_cap
+    benchmark_index: 000300.SH
+    market_timezone: Asia/Shanghai
+  - id: GOLD
+    name: 黄金
+    sleeve: commodity
+    cluster: safe_haven
+    benchmark_index: null
+    market_timezone: Asia/Shanghai
+

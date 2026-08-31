@@ -1,0 +1,8 @@
+timezone: Asia/Shanghai
+provider: longbridge
+raw_data_dir: data/raw
+canonical_data_dir: data/canonical
+longbridge:
+  max_attempts: 3
+  retry_base_seconds: 0.5
+

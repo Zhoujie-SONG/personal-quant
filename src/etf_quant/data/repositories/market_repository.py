@@ -79,10 +79,32 @@ class ParquetMarketRepository(MarketRepository):
             if path.exists():
                 self._require_current_schema([path])
                 for existing in pq.read_table(path).to_pylist():
-                    by_observation_id[str(existing["observation_id"])] = existing
+                    observation_id = str(existing["observation_id"])
+                    prior = by_observation_id.get(observation_id)
+                    if (
+                        prior is not None
+                        and prior["historical_data_semantics"]
+                        != existing["historical_data_semantics"]
+                    ):
+                        raise DataValidationError(
+                            "historical_data_semantics conflict for observation_id "
+                            f"{observation_id}"
+                        )
+                    by_observation_id[observation_id] = existing
             for bar in incoming:
                 row = self._to_row(bar)
-                by_observation_id[str(row["observation_id"])] = row
+                observation_id = str(row["observation_id"])
+                existing = by_observation_id.get(observation_id)
+                if (
+                    existing is not None
+                    and existing["historical_data_semantics"]
+                    != row["historical_data_semantics"]
+                ):
+                    raise DataValidationError(
+                        "historical_data_semantics conflict for observation_id "
+                        f"{observation_id}"
+                    )
+                by_observation_id[observation_id] = row
             rows = sorted(
                 by_observation_id.values(),
                 key=lambda row: (

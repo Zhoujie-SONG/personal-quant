@@ -185,6 +185,32 @@ class LongbridgeRawBarCache:
             )
         return sorted(result, key=lambda item: (item.provider_timestamp, item.retrieved_at))
 
+    def load_finalized(
+        self,
+        symbol: str,
+        start_date: date,
+        end_date: date,
+        adjust_type: AdjustType,
+        *,
+        finalization_cutoffs: Mapping[date, datetime],
+    ) -> list[RawMarketBar]:
+        """Load only observations individually retrieved at or after their cutoff."""
+        manifest = self._read_manifest(symbol, adjust_type)
+        finalized_dates = {
+            date.fromisoformat(value) for value in manifest.get("finalized_dates", [])
+        }
+        result: list[RawMarketBar] = []
+        for bar in self.load(symbol, start_date, end_date, adjust_type):
+            trade_date = shanghai_trade_date(bar.provider_timestamp)
+            cutoff = finalization_cutoffs.get(trade_date)
+            if (
+                trade_date in finalized_dates
+                and cutoff is not None
+                and bar.retrieved_at >= cutoff
+            ):
+                result.append(bar)
+        return result
+
     def _directory(self, symbol: str, adjust_type: AdjustType) -> Path:
         safe_symbol = symbol.strip().upper().replace("/", "_").replace("\\", "_")
         return self.root / safe_symbol / adjust_type.value

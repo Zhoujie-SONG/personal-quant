@@ -18,7 +18,7 @@ from etf_quant.domain.enums import (
     HistoricalDataSemantics,
     PITQueryMode,
 )
-from etf_quant.domain.exceptions import SchemaMigrationRequiredError
+from etf_quant.domain.exceptions import DataValidationError, SchemaMigrationRequiredError
 from etf_quant.domain.models.market_bar import MarketBar
 
 
@@ -106,6 +106,28 @@ def test_value_hash_is_independent_of_availability_policy(tmp_path) -> None:
     assert len(revisions) == 2
     assert len({revision.value_hash for revision in revisions}) == 1
     assert len({revision.availability_policy_id for revision in revisions}) == 2
+
+
+def test_historical_semantics_conflict_for_same_observation_fails_fast(tmp_path) -> None:
+    repository = ParquetMarketRepository(tmp_path)
+    original = bar()
+    conflicting = replace(
+        original,
+        historical_data_semantics=HistoricalDataSemantics.TRUE_HISTORICAL_VINTAGE,
+    )
+    assert market_bar_observation_id(original) == market_bar_observation_id(conflicting)
+
+    repository.append_bars([original])
+    with pytest.raises(DataValidationError, match="historical_data_semantics conflict"):
+        repository.append_bars([conflicting])
+
+    revisions = repository.get_bar_revisions(
+        original.symbol, original.trade_date, original.source
+    )
+    assert len(revisions) == 1
+    assert revisions[0].bar.historical_data_semantics is (
+        HistoricalDataSemantics.HISTORICAL_LATEST
+    )
 
 
 def test_formal_query_is_explicitly_limited_to_longbridge_source(tmp_path) -> None:

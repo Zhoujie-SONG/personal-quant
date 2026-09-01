@@ -70,6 +70,19 @@ Completed:
 - Added regression coverage for 2019 data ingested in 2026, source isolation, policy/value revision separation, mixed-schema migration, and pre/post-cutoff cache behavior.
 - All offline tests pass; integration remains excluded by default.
 
+## M1A.2a — Finalization promotion fix
+
+Status: **COMPLETE (offline gate passed) / REAL API UNVERIFIED**
+
+Completed:
+
+- Added a finalized-only raw-cache read path for formal Longbridge daily-bar ingestion while retaining provisional observations for audit.
+- Required each returned observation's own `retrieved_at` to meet the date cutoff; later date finalization cannot promote an earlier preliminary value.
+- Preserved normal historical ingestion for bars retrieved after their original finalization cutoff.
+- Added fail-fast protection when the same schema-v3 `observation_id` is presented with conflicting `historical_data_semantics`.
+- Added full offline provider/cache → ingestion service → Parquet repository regression coverage, including Economic and System Replay queries.
+- Reserved the M3 requirement to freeze `research_data_cutoff` and `dataset_snapshot_id` for every historical research run.
+
 ## Next milestone recommendation (paused)
 
-M1B is explicitly paused after M1A.2. When authorized later, proceed only after the capability probe and hardening review. AkShare, Vehicle Selector, strategy, backtest, Macro, LLM, GBDT, optimization, and live orders remain out of scope for this milestone.
+M1B is explicitly paused after M1A.2a. When authorized later, proceed only after the capability probe and hardening review. AkShare, Vehicle Selector, strategy, backtest, Macro, LLM, GBDT, optimization, and live orders remain out of scope for this milestone.

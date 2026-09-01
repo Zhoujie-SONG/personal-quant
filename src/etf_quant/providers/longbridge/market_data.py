@@ -61,6 +61,12 @@ class LongbridgeMarketDataProvider:
             item.trade_date
             for item in self.get_trading_days(Market.CN, start_date, end_date)
         }
+        finalization_cutoffs = {
+            trade_date: self._availability_policy.available_at(
+                shanghai_session_times(trade_date)[1]
+            )
+            for trade_date in expected_trading_dates
+        }
         for missing_start, missing_end in self._cache.missing_ranges(
             normalized,
             start_date,
@@ -100,16 +106,20 @@ class LongbridgeMarketDataProvider:
                     if missing_start <= trade_date <= missing_end
                 },
                 finalization_cutoffs={
-                    trade_date: self._availability_policy.available_at(
-                        shanghai_session_times(trade_date)[1]
-                    )
+                    trade_date: finalization_cutoffs[trade_date]
                     for trade_date in expected_trading_dates
                     if missing_start <= trade_date <= missing_end
                 },
                 retrieved_at=retrieved_at,
                 sdk_version=self._sdk_version,
             )
-        return self._cache.load(normalized, start_date, end_date, adjust_type)
+        return self._cache.load_finalized(
+            normalized,
+            start_date,
+            end_date,
+            adjust_type,
+            finalization_cutoffs=finalization_cutoffs,
+        )
 
     def get_trading_days(
         self,

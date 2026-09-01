@@ -1,4 +1,4 @@
-# Data contracts — M0/M1A/M1A.1/M1A.2
+# Data contracts — M0/M1A/M1A.1/M1A.2/M1A.2a
 
 ## Canonical authority and dependency direction
 
@@ -53,6 +53,8 @@ Monthly Parquet partitions are append-preserving revision logs. Later correction
 
 `value_hash` deliberately excludes `available_time` and `availability_policy_id`. A policy change creates a distinct observation/policy revision but not a false provider price revision.
 
+`historical_data_semantics` also remains outside `value_hash` and `observation_id`: it describes provenance, not price value. Because of that deliberate identity rule, appending the same `observation_id` with a different historical-data semantic is an error. The repository raises `DataValidationError` instead of silently replacing the stored observation.
+
 ## Explicit PIT query modes and source
 
 `MarketRepository.get_bars` has no hidden PIT default. Callers must provide both `source` and `mode`:
@@ -92,6 +94,17 @@ The raw manifest distinguishes:
 - `finalized_dates`: expected trading dates observed at or after `session_close + EOD delay`.
 
 Only `finalized_dates` satisfy cache completeness. A non-empty current-day response before the cutoff remains provisional and is fetched again. Weekend/holiday dates are not expected. Missing expected trading dates remain retryable. Legacy v2 `verified_dates` are conservatively reclassified as provisional because their cutoff proof was not stored.
+
+Raw `load()` retains both provisional and finalized observations for audit. The formal Longbridge daily-bar provider uses the finalized-only cache interface: an observation is returned to canonical ingestion only when that exact observation's `retrieved_at` is at or after its trading date's cutoff. The ingestion service also fails fast if any normalized daily bar has `ingest_time < available_time`. Promoting a date to finalized does not retroactively promote an earlier preliminary observation. Old historical bars fetched long after their original cutoff remain eligible and ingest normally.
+
+## Future research snapshot contract
+
+`PITQueryMode.ECONOMIC` answers the economic-time question, but it does not freeze which later-ingested provider revisions a research run used. Before the M3 Backtester is implemented, every historical research run must freeze and persist both:
+
+- `research_data_cutoff`: the latest allowed canonical `ingest_time` for that run;
+- `dataset_snapshot_id`: an immutable identifier for the exact canonical dataset/revision set.
+
+`as_of` and `research_data_cutoff` are different axes: `as_of` is the economic decision time, while the dataset cutoff controls the ingestion/revision vintage available to the research run. M3 must enforce both and must not rely on a mutable latest dataset.
 
 ## Historical metadata discipline
 

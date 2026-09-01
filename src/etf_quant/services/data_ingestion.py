@@ -38,4 +38,9 @@ class MarketDataIngestionService:
         canonical_bars = [
             normalize_market_bar(item, self._availability_policy) for item in raw_bars
         ]
+        if any(bar.ingest_time < bar.available_time for bar in canonical_bars):
+            raise DataValidationError(
+                "formal canonical ingestion received a daily-bar observation "
+                "before its finalization cutoff"
+            )
         return self._repository.append_bars(canonical_bars)

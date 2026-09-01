@@ -1,0 +1,198 @@
+schema_version: 1
+registry_name: logical_asset_benchmarks_candidate
+status: CANDIDATE_NOT_FROZEN
+historical_data_semantics: HISTORICAL_LATEST
+notes: >-
+  Research-only candidate mappings for U1. INDEX and SPOT series are economic
+  benchmarks, not execution vehicles. UNRESOLVED entries must not be replaced
+  by ETFs or name-similar instruments without an explicit registry revision.
+benchmarks:
+  - logical_asset_id: CN_LARGE
+    benchmark_name: CSI 300 Index
+    benchmark_symbol: 000300.SH
+    provider: longbridge
+    currency: CNY
+    timezone: Asia/Shanghai
+    benchmark_type: INDEX
+    index_launch_date: 2005-04-08
+    known_backfilled_history: true
+    status: RESOLVED
+    notes: Longbridge static-info verified; CSI official index code 000300.
+  - logical_asset_id: CN_SMALL
+    benchmark_name: CSI 1000 Index
+    benchmark_symbol: 000852.SH
+    provider: longbridge
+    currency: CNY
+    timezone: Asia/Shanghai
+    benchmark_type: INDEX
+    index_launch_date: 2014-10-17
+    known_backfilled_history: true
+    status: RESOLVED
+    notes: Longbridge static-info verified; CSI official index code 000852.
+  - logical_asset_id: CN_GROWTH
+    benchmark_name: ChiNext Index
+    benchmark_symbol: 399006.SZ
+    provider: longbridge
+    currency: CNY
+    timezone: Asia/Shanghai
+    benchmark_type: INDEX
+    index_launch_date: 2010-06-01
+    known_backfilled_history: false
+    status: RESOLVED
+    notes: Longbridge static-info verified; SZSE official index code 399006.
+  - logical_asset_id: CN_DIVIDEND
+    benchmark_name: CSI Dividend Index
+    benchmark_symbol: 000922.SH
+    provider: longbridge
+    currency: CNY
+    timezone: Asia/Shanghai
+    benchmark_type: INDEX
+    index_launch_date: 2008-05-26
+    known_backfilled_history: true
+    status: RESOLVED
+    notes: Longbridge static-info verified; CSI official index code 000922.
+  - logical_asset_id: SEMI
+    benchmark_name: China semiconductor economic benchmark
+    benchmark_symbol: null
+    provider: null
+    currency: CNY
+    timezone: Asia/Shanghai
+    benchmark_type: INDEX
+    index_launch_date: null
+    known_backfilled_history: null
+    status: UNRESOLVED
+    notes: No representative semiconductor index daily-bar mapping was verified in Longbridge; ETF substitution is forbidden.
+  - logical_asset_id: HEALTHCARE
+    benchmark_name: CSI All Share Health Care Index
+    benchmark_symbol: 000991.SH
+    provider: longbridge
+    currency: CNY
+    timezone: Asia/Shanghai
+    benchmark_type: INDEX
+    index_launch_date: 2011-08-02
+    known_backfilled_history: true
+    status: RESOLVED
+    notes: Longbridge static-info verified as All Share HealthCare.
+  - logical_asset_id: CONSUMER
+    benchmark_name: CSI 800 Consumer Staples Index
+    benchmark_symbol: 000932.SH
+    provider: longbridge
+    currency: CNY
+    timezone: Asia/Shanghai
+    benchmark_type: INDEX
+    index_launch_date: 2009-07-03
+    known_backfilled_history: true
+    status: RESOLVED
+    notes: Longbridge static-info verified; CSI official code 000932.
+  - logical_asset_id: COAL
+    benchmark_name: CSI Coal Index
+    benchmark_symbol: 399998.SZ
+    provider: longbridge
+    currency: CNY
+    timezone: Asia/Shanghai
+    benchmark_type: INDEX
+    index_launch_date: 2015-02-13
+    known_backfilled_history: true
+    status: RESOLVED
+    notes: Longbridge static-info verified as CSI Coal.
+  - logical_asset_id: NASDAQ100
+    benchmark_name: Nasdaq-100 Index
+    benchmark_symbol: .NDX.US
+    provider: longbridge
+    currency: USD
+    timezone: America/New_York
+    benchmark_type: INDEX
+    index_launch_date: 1985-01-31
+    known_backfilled_history: false
+    status: RESOLVED
+    notes: Longbridge static-info verified; Nasdaq official ticker NDX.
+  - logical_asset_id: SP500
+    benchmark_name: S&P 500 Index
+    benchmark_symbol: .SPX.US
+    provider: longbridge
+    currency: USD
+    timezone: America/New_York
+    benchmark_type: INDEX
+    index_launch_date: 1957-03-04
+    known_backfilled_history: false
+    status: RESOLVED
+    notes: Longbridge static-info verified; S&P official price index ticker SPX.
+  - logical_asset_id: HSTECH
+    benchmark_name: Hang Seng TECH Index
+    benchmark_symbol: HSTECH.HK
+    provider: longbridge
+    currency: HKD
+    timezone: Asia/Hong_Kong
+    benchmark_type: INDEX
+    index_launch_date: 2020-07-27
+    known_backfilled_history: true
+    status: RESOLVED
+    notes: Longbridge static-info verified; pre-launch history from 2014-12-31 is back-tested by the index provider.
+  - logical_asset_id: HK_BROAD
+    benchmark_name: Hang Seng Index
+    benchmark_symbol: HSI.HK
+    provider: longbridge
+    currency: HKD
+    timezone: Asia/Hong_Kong
+    benchmark_type: INDEX
+    index_launch_date: 1969-11-24
+    known_backfilled_history: true
+    status: RESOLVED
+    notes: Longbridge static-info verified; broad Hong Kong large-cap benchmark.
+  - logical_asset_id: GOLD
+    benchmark_name: Shanghai Gold Exchange Au99.99 spot
+    benchmark_symbol: Au99.99
+    provider: akshare
+    currency: CNY
+    timezone: Asia/Shanghai
+    benchmark_type: SPOT
+    index_launch_date: null
+    known_backfilled_history: false
+    status: RESOLVED
+    notes: Explicit SGE spot benchmark; not an ETF and not an execution vehicle.
+  - logical_asset_id: BOND_LONG
+    benchmark_name: Long-duration China government bond total-return benchmark
+    benchmark_symbol: null
+    provider: null
+    currency: CNY
+    timezone: Asia/Shanghai
+    benchmark_type: INDEX
+    index_launch_date: null
+    known_backfilled_history: null
+    status: UNRESOLVED
+    notes: No reliable total-return index history mapping was verified; bond yield changes are not substituted for bond returns.
+  - logical_asset_id: BOND_MED
+    benchmark_name: Medium-duration China government bond total-return benchmark
+    benchmark_symbol: null
+    provider: null
+    currency: CNY
+    timezone: Asia/Shanghai
+    benchmark_type: INDEX
+    index_launch_date: null
+    known_backfilled_history: null
+    status: UNRESOLVED
+    notes: No reliable total-return index history mapping was verified; bond yield changes are not substituted for bond returns.
+  - logical_asset_id: CASH
+    benchmark_name: Cash return proxy
+    benchmark_symbol: null
+    provider: null
+    currency: CNY
+    timezone: Asia/Shanghai
+    benchmark_type: CASH_PROXY
+    index_launch_date: null
+    known_backfilled_history: null
+    status: UNRESOLVED
+    notes: Excluded from EX_CASH; no artificial zero-return series is created.
+  - logical_asset_id: OIL
+    benchmark_name: Crude oil commodity benchmark
+    benchmark_symbol: null
+    provider: null
+    currency: null
+    timezone: null
+    benchmark_type: INDEX
+    index_launch_date: null
+    known_backfilled_history: null
+    status: UNRESOLVED
+    active: false
+    executable: false
+    notes: INDEX_ONLY / NON_EXECUTABLE informational candidate; excluded from main U1 figures.

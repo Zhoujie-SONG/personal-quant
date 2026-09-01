@@ -1,0 +1,14 @@
+{
+  "status": "PASS_WITH_WARNINGS",
+  "checks": {
+    "duplicate_dates": "PASS",
+    "monotonic_dates": "PASS",
+    "positive_levels": "PASS",
+    "impossible_returns_over_50pct": "PASS",
+    "missing_blocks_over_14_calendar_days": "WARNING",
+    "timezone_date_conversion": "PASS_EXPLICIT_REGISTRY_TIMEZONE"
+  },
+  "warnings": [
+    "CN_LARGE: 1 calendar gaps exceed 14 days"
+  ]
+}

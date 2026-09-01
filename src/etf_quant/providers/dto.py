@@ -41,6 +41,20 @@ class RawMarketBar:
 
 
 @dataclass(frozen=True, slots=True)
+class RawBenchmarkLevel:
+    """Provider-neutral research observation for a native benchmark level."""
+
+    symbol: str
+    observation_date: date
+    level: str
+    retrieved_at: datetime
+    provider: str
+    sdk_version: str
+    historical_data_semantics: HistoricalDataSemantics
+    provider_payload: Mapping[str, Any] = field(default_factory=dict, repr=False)
+
+
+@dataclass(frozen=True, slots=True)
 class RawQuote:
     symbol: str
     last_done: str

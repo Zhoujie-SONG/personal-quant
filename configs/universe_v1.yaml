@@ -1,0 +1,136 @@
+schema_name: logical_asset_universe
+schema_version: "1.0"
+universe_name: A_SHARE_ETF_LOGICAL_ASSET_UNIVERSE_V1
+universe_status: FROZEN_V1
+
+freeze_provenance:
+  freeze_date: 2026-09-01
+  freeze_source_commit: cafbea27dbfd8d72e85fc2ac3ef1bf2f34a7e7c1
+  u1_commit: cf1c2b86b567e70d6f6cfcd91da32b0a01b074f9
+  u1_1_commit: cafbea27dbfd8d72e85fc2ac3ef1bf2f34a7e7c1
+
+benchmark_registry:
+  path: configs/logical_asset_benchmarks_candidate.yaml
+  benchmark_registry_source_commit: cafbea27dbfd8d72e85fc2ac3ef1bf2f34a7e7c1
+  benchmark_mapping_hash: c08c8cb3669649984e07998c356da475f7dc8f4f68d40bd17fc00ee2647ed1ba
+  purpose: RESEARCH_BENCHMARK_PROVENANCE
+  historical_data_semantics: HISTORICAL_LATEST
+
+execution_vehicle_boundary:
+  execution_vehicle_registry: null
+  vehicle_selector_status: NOT_IMPLEMENTED
+  contract: >-
+    Logical Asset IDs and research benchmark references are not execution ETF
+    symbols. Execution vehicles belong to a separate future PIT registry and
+    selector; this freeze neither selects nor stores ETF vehicles.
+
+active_logical_assets:
+  - id: CN_LARGE
+    name_cn: 沪深300
+    status: ACTIVE
+    sleeve: CHINA_BROAD_STYLE
+    benchmark_reference: {symbol: 000300.SH, provider: longbridge, benchmark_type: INDEX, series_kind: null}
+  - id: CN_SMALL
+    name_cn: 中证1000
+    status: ACTIVE
+    sleeve: CHINA_BROAD_STYLE
+    benchmark_reference: {symbol: 000852.SH, provider: longbridge, benchmark_type: INDEX, series_kind: null}
+  - id: CN_GROWTH
+    name_cn: 创业板
+    status: ACTIVE
+    sleeve: CHINA_BROAD_STYLE
+    benchmark_reference: {symbol: 399006.SZ, provider: longbridge, benchmark_type: INDEX, series_kind: null}
+  - id: CN_DIVIDEND
+    name_cn: 红利
+    status: ACTIVE
+    sleeve: CHINA_BROAD_STYLE
+    benchmark_reference: {symbol: 000922.SH, provider: longbridge, benchmark_type: INDEX, series_kind: null}
+  - id: SEMI
+    name_cn: 半导体
+    status: ACTIVE
+    sleeve: CHINA_INDUSTRY
+    benchmark_reference: {symbol: H30184, provider: csindex, benchmark_type: INDEX, series_kind: PRICE_INDEX}
+  - id: HEALTHCARE
+    name_cn: 医药医疗
+    status: ACTIVE
+    sleeve: CHINA_INDUSTRY
+    benchmark_reference: {symbol: 000991.SH, provider: longbridge, benchmark_type: INDEX, series_kind: null}
+  - id: CONSUMER
+    name_cn: 消费
+    status: ACTIVE
+    sleeve: CHINA_INDUSTRY
+    benchmark_reference: {symbol: 000932.SH, provider: longbridge, benchmark_type: INDEX, series_kind: null}
+  - id: COAL
+    name_cn: 煤炭
+    status: ACTIVE
+    sleeve: CHINA_INDUSTRY
+    benchmark_reference: {symbol: 399998.SZ, provider: longbridge, benchmark_type: INDEX, series_kind: null}
+  - id: SP500
+    name_cn: 标普500
+    status: ACTIVE
+    sleeve: OVERSEAS_EQUITY
+    benchmark_reference: {symbol: .SPX.US, provider: longbridge, benchmark_type: INDEX, series_kind: null}
+  - id: NASDAQ100
+    name_cn: 纳斯达克100
+    status: ACTIVE
+    sleeve: OVERSEAS_EQUITY
+    benchmark_reference: {symbol: .NDX.US, provider: longbridge, benchmark_type: INDEX, series_kind: null}
+  - id: HK_BROAD
+    name_cn: 港股宽基
+    status: ACTIVE
+    sleeve: OVERSEAS_EQUITY
+    benchmark_reference: {symbol: HSI.HK, provider: longbridge, benchmark_type: INDEX, series_kind: null}
+  - id: GOLD
+    name_cn: 黄金
+    status: ACTIVE
+    sleeve: COMMODITY
+    benchmark_reference: {symbol: Au99.99, provider: akshare, benchmark_type: SPOT, series_kind: null}
+  - id: BOND_LONG
+    name_cn: 长久期中国国债
+    status: ACTIVE
+    sleeve: DEFENSIVE
+    benchmark_reference: {symbol: H11077, provider: csindex, benchmark_type: INDEX, series_kind: FULL_PRICE_INDEX}
+  - id: BOND_MED
+    name_cn: 中久期中国国债
+    status: ACTIVE
+    sleeve: DEFENSIVE
+    benchmark_reference: {symbol: H00140, provider: csindex, benchmark_type: INDEX, series_kind: FULL_PRICE_INDEX}
+  - id: CASH
+    name_cn: 现金
+    status: ACTIVE
+    sleeve: DEFENSIVE
+    benchmark_reference: {symbol: null, provider: null, benchmark_type: CASH_PROXY, series_kind: null}
+
+deferred_inactive_candidates:
+  - id: HSTECH
+    status: DEFERRED_REDUNDANCY
+    reason: Structural redundancy with HK_BROAD in U1/U1.1.
+    evidence:
+      daily_correlation: 0.911
+      weekly_correlation: 0.902
+      rolling_756_day_median: 0.941
+    human_freeze_decision: KEEP HK_BROAD; DEFER HSTECH
+  - id: OIL
+    status: INACTIVE_NO_VALID_ETF_VEHICLE
+    reason: >-
+      Crude-oil commodity exposure currently has no verified ETF-only execution
+      vehicle with matching economic semantics.
+    roles: [INDEX_ONLY, NON_EXECUTABLE]
+    forbidden_substitution: OIL_AND_GAS_EQUITY_ETF
+
+sleeves:
+  CHINA_BROAD_STYLE: [CN_LARGE, CN_SMALL, CN_GROWTH, CN_DIVIDEND]
+  CHINA_INDUSTRY: [SEMI, HEALTHCARE, CONSUMER, COAL]
+  OVERSEAS_EQUITY: [SP500, NASDAQ100, HK_BROAD]
+  COMMODITY: [GOLD]
+  DEFENSIVE: [BOND_LONG, BOND_MED, CASH]
+
+predeclared_risk_clusters:
+  CN_GROWTH_TECH: [CN_GROWTH, SEMI]
+  US_EQUITY: [SP500, NASDAQ100]
+  CN_RATES: [BOND_LONG, BOND_MED]
+
+risk_cluster_contract: >-
+  Semi-static prior groups for future risk control and portfolio construction.
+  They do not implement cluster caps or optimization. CN_DIVIDEND and COAL
+  remain economically distinct and are not forced into a shared cluster.

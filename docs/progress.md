@@ -115,6 +115,41 @@ Completed:
 - Applied snapshot-time eligibility consistently to Index metadata and rejected naive `research_data_cutoff` values.
 - Removed duplicated ETF snapshot eligibility logic and documented the future field-level `MetadataResolver` contract without implementing M2 resolution or selection.
 
-## Next milestone recommendation (paused)
+## U1 — Logical Asset redundancy diagnostic
 
-M2 remains explicitly paused after M1B.1. Vehicle Selector, final Logical Asset universe, strategy, backtest, Macro, LLM, GBDT, portfolio construction, optimization, broker integration, and live orders remain out of scope.
+Status: **PASS**
+
+Completed:
+
+- Built the research-only candidate benchmark registry and real-data coverage/correlation/effective-breadth diagnostic.
+- Preserved CASH as EX_CASH and OIL as inactive, non-executable informational exposure.
+- Produced evidence for human review without automatically removing assets or defining Universe v1.
+
+## U1.1 — Effective breadth completion and robustness
+
+Status: **PASS**
+
+Completed:
+
+- Resolved SEMI to official H30184 price-index history and BOND_LONG/BOND_MED to official H11077/H00140 full-price histories after explicit Longbridge-unavailable probes.
+- Added weekly common-window effective breadth as a fixed cross-timezone robustness diagnostic without forward fill, zero fill, or lag optimization.
+- Recorded daily N_eff 5.04 and weekly N_eff 4.83, plus the required structural-pair evidence.
+
+## U-FREEZE — Logical Asset Universe v1.0
+
+Status: **FROZEN_V1**
+
+Completed:
+
+- Froze exactly 15 ACTIVE Logical Assets in `configs/universe_v1.yaml`, including CASH.
+- Deferred HSTECH for human-approved structural redundancy and kept OIL inactive/non-executable.
+- Froze five sleeve assignments and three semi-static prior risk clusters without implementing cluster caps or portfolio construction.
+- Pinned the research benchmark provenance to the U1.1 baseline commit and candidate-registry SHA-256.
+- Enforced machine-readable freeze invariants and the separation of Logical Assets, research benchmarks, and future execution vehicles.
+- Recorded the full human decision and provenance in `docs/universe_v1_freeze.md`.
+
+## Next milestone
+
+M2 — MetadataResolver, Historical Vehicle Registry, and PIT Vehicle Selector.
+
+M2 is the next declared stage but is not implemented by U-FREEZE. Strategy, backtest, Macro, LLM, GBDT, portfolio construction, optimization, broker integration, and live orders remain out of scope.

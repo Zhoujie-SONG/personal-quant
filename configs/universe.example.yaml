@@ -1,5 +1,5 @@
-# Schema example only. The production 15-30 asset universe belongs to P0 and is
-# intentionally not frozen during M0/M1A.
+# Legacy schema example only. The frozen production policy is now defined by
+# configs/universe_v1.yaml and its dedicated validation contract.
 version: example
 frozen_at: null
 logical_assets:
@@ -15,4 +15,3 @@ logical_assets:
     cluster: safe_haven
     benchmark_index: null
     market_timezone: Asia/Shanghai
-

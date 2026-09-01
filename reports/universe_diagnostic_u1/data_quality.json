@@ -3,12 +3,13 @@
   "checks": {
     "duplicate_dates": "PASS",
     "monotonic_dates": "PASS",
-    "positive_levels": "PASS",
+    "positive_levels": "WARNING_RAW_RETAINED_EXCLUDED_FROM_RETURNS",
     "impossible_returns_over_50pct": "PASS",
     "missing_blocks_over_14_calendar_days": "WARNING",
     "timezone_date_conversion": "PASS_EXPLICIT_REGISTRY_TIMEZONE"
   },
   "warnings": [
-    "CN_LARGE: 1 calendar gaps exceed 14 days"
+    "CN_LARGE: 1 calendar gaps exceed 14 days",
+    "SEMI: 1 nonpositive raw level(s) set to missing for return calculation (2013-06-28); raw observations retained"
   ]
 }

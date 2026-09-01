@@ -8,13 +8,17 @@ import pandas as pd
 import pytest
 
 from etf_quant.research.universe_diagnostic import (
+    OfficialSymbolProbeAttempt,
+    common_window_frame,
     correlation_distance,
+    evaluate_official_symbol_probe,
     ex_cash,
     history_flag,
     load_benchmark_registry,
     pairwise_correlation_rows,
     pairwise_overlap,
     participation_ratio,
+    prepare_levels_for_analysis,
     redundancy_band,
     simple_returns,
     structural_redundancy_candidate,
@@ -44,6 +48,20 @@ def test_simple_returns_does_not_zero_fill_missing_prices() -> None:
     assert not (returns == 0).any()
 
 
+def test_nonpositive_official_level_is_explicitly_missing_not_bridged() -> None:
+    levels = pd.Series(
+        [100.0, 0.0, 110.0, 121.0],
+        index=pd.date_range("2020-01-01", periods=4),
+    )
+
+    prepared, warnings = prepare_levels_for_analysis(levels, asset_id="SEMI")
+    returns = simple_returns(prepared)
+
+    assert pd.isna(prepared.iloc[1])
+    assert list(returns.index) == [pd.Timestamp("2020-01-04")]
+    assert "2020-01-02" in warnings[0]
+
+
 def test_weekly_returns_use_last_actual_observation_date_and_preserve_missing_week() -> None:
     levels = pd.Series(
         [100.0, 105.0, 110.0, 121.0],
@@ -54,6 +72,24 @@ def test_weekly_returns_use_last_actual_observation_date_and_preserve_missing_we
 
     assert list(returns.index) == [pd.Timestamp("2020-01-09")]
     assert returns.iloc[0] == pytest.approx(110.0 / 105.0 - 1.0)
+
+
+def test_weekly_common_window_aligns_only_last_actual_observation_dates() -> None:
+    left_levels = pd.Series(
+        [100.0, 110.0, 121.0],
+        index=pd.to_datetime(["2020-01-03", "2020-01-09", "2020-01-17"]),
+    )
+    right_levels = pd.Series(
+        [200.0, 220.0, 242.0],
+        index=pd.to_datetime(["2020-01-03", "2020-01-10", "2020-01-17"]),
+    )
+
+    common = common_window_frame(
+        {"LEFT": weekly_returns(left_levels), "RIGHT": weekly_returns(right_levels)}
+    )
+
+    assert list(common.index) == [pd.Timestamp("2020-01-17")]
+    assert pd.Timestamp("2020-01-10") not in common.index
 
 
 def test_pairwise_max_history_uses_only_pair_overlap_dates() -> None:
@@ -85,6 +121,19 @@ def test_identity_correlation_gives_nominal_effective_breadth() -> None:
 def test_perfect_positive_correlation_gives_one_effective_asset() -> None:
     effective_n, _ = participation_ratio(np.ones((4, 4)))
     assert effective_n == pytest.approx(1.0)
+
+
+def test_weekly_participation_ratio_uses_weekly_common_matrix() -> None:
+    index = pd.to_datetime(["2020-01-03", "2020-01-10", "2020-01-17", "2020-01-24"])
+    weekly = pd.DataFrame(
+        {"A": [0.01, -0.02, 0.03, -0.01], "B": [-0.01, -0.02, -0.03, -0.01]},
+        index=index,
+    )
+
+    effective_n, eigenvalues = participation_ratio(weekly.corr())
+
+    assert eigenvalues.sum() == pytest.approx(2.0)
+    assert 1.0 <= effective_n <= 2.0
 
 
 def test_negative_correlation_is_not_flagged_as_redundancy() -> None:
@@ -121,12 +170,62 @@ def test_short_history_flag(first_date: date, last_date: date, expected: str) ->
 def test_unresolved_registry_does_not_silently_substitute_etf() -> None:
     path = Path("configs/logical_asset_benchmarks_candidate.yaml")
     _, candidates = load_benchmark_registry(path)
-    semi = next(item for item in candidates if item.logical_asset_id == "SEMI")
+    cash = next(item for item in candidates if item.logical_asset_id == "CASH")
 
-    assert semi.status == "UNRESOLVED"
-    assert semi.benchmark_symbol is None
-    assert semi.provider is None
+    assert cash.status == "UNRESOLVED"
+    assert cash.benchmark_symbol is None
+    assert cash.provider is None
     assert all(item.benchmark_type != "ETF" for item in candidates)
+
+
+def test_unavailable_official_symbol_probe_cannot_silently_resolve() -> None:
+    decision = evaluate_official_symbol_probe(
+        "H30184",
+        [
+            OfficialSymbolProbeAttempt("H30184.SH", False, False),
+            OfficialSymbolProbeAttempt("H30184.SZ", False, False),
+        ],
+    )
+
+    assert decision.status == "LONGBRIDGE_UNAVAILABLE"
+    assert decision.resolved_symbol is None
+
+
+@pytest.mark.parametrize(
+    ("symbol", "series_kind", "message"),
+    [
+        ("H11077", "YIELD_SERIES", "requires FULL_PRICE_INDEX"),
+        ("H01077", "FULL_PRICE_INDEX", "clean-price index"),
+    ],
+)
+def test_bond_benchmark_rejects_yield_and_clean_price_substitutions(
+    tmp_path: Path,
+    symbol: str,
+    series_kind: str,
+    message: str,
+) -> None:
+    registry = tmp_path / "bond_registry.yaml"
+    registry.write_text(
+        f"""benchmarks:
+  - logical_asset_id: BOND_LONG
+    benchmark_name: invalid bond proxy
+    benchmark_symbol: {symbol}
+    provider: csindex
+    currency: CNY
+    timezone: Asia/Shanghai
+    benchmark_type: INDEX
+    series_kind: {series_kind}
+    index_launch_date: 2013-03-07
+    base_date: 2008-12-31
+    known_backfilled_history: true
+    status: RESOLVED
+    notes: must fail
+""",
+        encoding="utf-8",
+    )
+
+    with pytest.raises(ValueError, match=message):
+        load_benchmark_registry(registry)
 
 
 def test_registry_rejects_etf_benchmark_type(tmp_path: Path) -> None:

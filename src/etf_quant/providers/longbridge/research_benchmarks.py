@@ -1,13 +1,25 @@
 from __future__ import annotations
 
 import importlib.metadata
+from dataclasses import dataclass
 from datetime import date, timedelta
 from zoneinfo import ZoneInfo
 
 from etf_quant.domain.enums import HistoricalDataSemantics
 from etf_quant.providers.dto import RawBenchmarkLevel
 from etf_quant.providers.longbridge.client import LongbridgeClient
+from etf_quant.providers.longbridge.exceptions import LongbridgeProviderError
 from etf_quant.utils.time import provider_datetime, utc_now
+
+
+@dataclass(frozen=True, slots=True)
+class LongbridgeBenchmarkProbe:
+    attempted_symbol: str
+    static_returned: bool
+    static_symbol: str | None
+    static_name: str | None
+    history_count: int
+    history_error: str | None
 
 
 class LongbridgeResearchBenchmarkProvider:
@@ -68,6 +80,51 @@ class LongbridgeResearchBenchmarkProvider:
                 )
             chunk_start = chunk_end + timedelta(days=1)
         return [observations[key] for key in sorted(observations)]
+
+    def probe_symbol(
+        self,
+        symbol: str,
+        *,
+        history_start: date,
+        history_end: date,
+    ) -> LongbridgeBenchmarkProbe:
+        """Run independent static and unadjusted-history gates for one symbol."""
+        static_rows = self._client.query(
+            "research_static_probe",
+            lambda context: context.static_info([symbol]),
+        )
+        static_match = next(
+            (item for item in static_rows if str(getattr(item, "symbol", "")) == symbol),
+            None,
+        )
+        history_count = 0
+        history_error: str | None = None
+        try:
+            history_rows = self._client.query(
+                "research_history_probe",
+                lambda context: context.history_candlesticks_by_date(
+                    symbol,
+                    self._period_day(),
+                    self._no_adjust(),
+                    history_start,
+                    history_end,
+                ),
+            )
+            history_count = len(history_rows)
+        except LongbridgeProviderError as exc:
+            history_error = str(exc)
+        return LongbridgeBenchmarkProbe(
+            attempted_symbol=symbol,
+            static_returned=static_match is not None,
+            static_symbol=str(getattr(static_match, "symbol", "")) if static_match else None,
+            static_name=(
+                str(getattr(static_match, "name_en", "") or getattr(static_match, "name_cn", ""))
+                if static_match
+                else None
+            ),
+            history_count=history_count,
+            history_error=history_error,
+        )
 
     @staticmethod
     def _period_day() -> object:

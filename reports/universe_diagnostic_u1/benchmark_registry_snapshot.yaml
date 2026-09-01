@@ -51,17 +51,21 @@ benchmarks:
   status: RESOLVED
   notes: Longbridge static-info verified; CSI official index code 000922.
 - logical_asset_id: SEMI
-  benchmark_name: China semiconductor economic benchmark
-  benchmark_symbol: null
-  provider: null
+  benchmark_name: CSI All Share Semiconductors & Semiconductor Equipment Index
+  benchmark_symbol: H30184
+  provider: csindex
   currency: CNY
   timezone: Asia/Shanghai
   benchmark_type: INDEX
-  index_launch_date: null
-  known_backfilled_history: null
-  status: UNRESOLVED
-  notes: No representative semiconductor index daily-bar mapping was verified in Longbridge;
-    ETF substitution is forbidden.
+  series_kind: PRICE_INDEX
+  index_launch_date: 2013-07-15
+  base_date: 2004-12-31
+  known_backfilled_history: true
+  status: RESOLVED
+  primary_provider_status: LONGBRIDGE_UNAVAILABLE
+  notes: Official code and history verified through the CSI index-perf endpoint. Longbridge
+    probes H30184.SH/H30184.SZ returned no static row and invalid-symbol history errors.
+    ETF 512480 is not used.
 - logical_asset_id: HEALTHCARE
   benchmark_name: CSI All Share Health Care Index
   benchmark_symbol: 000991.SH
@@ -152,29 +156,37 @@ benchmarks:
   status: RESOLVED
   notes: Explicit SGE spot benchmark; not an ETF and not an execution vehicle.
 - logical_asset_id: BOND_LONG
-  benchmark_name: Long-duration China government bond total-return benchmark
-  benchmark_symbol: null
-  provider: null
+  benchmark_name: SSE 10-Year China Treasury Note Index
+  benchmark_symbol: H11077
+  provider: csindex
   currency: CNY
   timezone: Asia/Shanghai
   benchmark_type: INDEX
-  index_launch_date: null
-  known_backfilled_history: null
-  status: UNRESOLVED
-  notes: No reliable total-return index history mapping was verified; bond yield changes
-    are not substituted for bond returns.
+  series_kind: FULL_PRICE_INDEX
+  index_launch_date: 2013-03-07
+  base_date: 2008-12-31
+  known_backfilled_history: true
+  status: RESOLVED
+  primary_provider_status: LONGBRIDGE_UNAVAILABLE
+  notes: Official full-price index code and history verified through the CSI index-perf
+    endpoint. H01077 is the clean-price derivative and is not used; no yield-change
+    or ETF substitution is permitted. Longbridge H11077.SH/H11077.SZ probes were unavailable.
 - logical_asset_id: BOND_MED
-  benchmark_name: Medium-duration China government bond total-return benchmark
-  benchmark_symbol: null
-  provider: null
+  benchmark_name: SSE 5-Year China Treasury Note (Full Price) Index
+  benchmark_symbol: H00140
+  provider: csindex
   currency: CNY
   timezone: Asia/Shanghai
   benchmark_type: INDEX
-  index_launch_date: null
-  known_backfilled_history: null
-  status: UNRESOLVED
-  notes: No reliable total-return index history mapping was verified; bond yield changes
-    are not substituted for bond returns.
+  series_kind: FULL_PRICE_INDEX
+  index_launch_date: 2012-09-12
+  base_date: 2007-12-31
+  known_backfilled_history: true
+  status: RESOLVED
+  primary_provider_status: LONGBRIDGE_UNAVAILABLE
+  notes: Official full-price index code and history verified through the CSI index-perf
+    endpoint. Yield changes and ETF 511010 are not used. Longbridge H00140.SH/H00140.SZ
+    probes were unavailable.
 - logical_asset_id: CASH
   benchmark_name: Cash return proxy
   benchmark_symbol: null
@@ -200,13 +212,15 @@ benchmarks:
   executable: false
   notes: INDEX_ONLY / NON_EXECUTABLE informational candidate; excluded from main U1
     figures.
-mapping_sha256: 6432ac54d0b0aae969cefe7844dfce81df9aa89938c60dfd3ecbc30449df448e
-data_retrieved_at: '2026-09-01T08:23:45.123383+00:00'
+mapping_sha256: c08c8cb3669649984e07998c356da475f7dc8f4f68d40bd17fc00ee2647ed1ba
+data_retrieved_at: '2026-09-01T10:31:25.802048+00:00'
 dataset_cutoff: '2026-09-01'
-source_baseline_git_commit: 1363bba058dae3ae79af2d6412868a55cf549ee9
+source_baseline_git_commit: cf1c2b86b567e70d6f6cfcd91da32b0a01b074f9
 artifact_git_commit: SEE_CONTAINING_COMMIT
+benchmark_probe_evidence: benchmark_probe_results.json
 providers_used:
 - akshare
+- csindex
 - longbridge
 source_provenance:
   CN_LARGE:
@@ -228,6 +242,11 @@ source_provenance:
     provider: longbridge
     symbol: 000922.SH
     retrieved_at: '2026-09-01T08:22:23.476827+00:00'
+    historical_data_semantics: HISTORICAL_LATEST
+  SEMI:
+    provider: csindex
+    symbol: H30184
+    retrieved_at: '2026-09-01T10:31:23.845610+00:00'
     historical_data_semantics: HISTORICAL_LATEST
   HEALTHCARE:
     provider: longbridge
@@ -268,4 +287,14 @@ source_provenance:
     provider: akshare
     symbol: Au99.99
     retrieved_at: '2026-09-01T08:23:45.123383+00:00'
+    historical_data_semantics: HISTORICAL_LATEST
+  BOND_LONG:
+    provider: csindex
+    symbol: H11077
+    retrieved_at: '2026-09-01T10:31:24.771838+00:00'
+    historical_data_semantics: HISTORICAL_LATEST
+  BOND_MED:
+    provider: csindex
+    symbol: H00140
+    retrieved_at: '2026-09-01T10:31:25.802048+00:00'
     historical_data_semantics: HISTORICAL_LATEST

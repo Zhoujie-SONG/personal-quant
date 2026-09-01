@@ -1,0 +1,99 @@
+{
+  "probed_at": "2026-09-01T10:33:03.974049+00:00",
+  "history_probe_window": {
+    "start": "2025-01-01",
+    "end": "2025-12-31"
+  },
+  "assets": {
+    "SEMI": {
+      "official_code": "H30184",
+      "longbridge_status": "LONGBRIDGE_UNAVAILABLE",
+      "longbridge_resolved_symbol": null,
+      "longbridge_attempts": [
+        {
+          "symbol": "H30184.SH",
+          "static_returned": false,
+          "static_symbol": null,
+          "static_name": null,
+          "history_count": 0,
+          "history_error": "OpenApiException: (kind=ErrorKind.OpenApi, code=301600, trace_id=) invalid symbol"
+        },
+        {
+          "symbol": "H30184.SZ",
+          "static_returned": false,
+          "static_symbol": null,
+          "static_name": null,
+          "history_count": 0,
+          "history_error": "OpenApiException: (kind=ErrorKind.OpenApi, code=301600, trace_id=) invalid symbol"
+        }
+      ],
+      "supplemental_provider": "csindex",
+      "supplemental_status": "RESOLVED",
+      "supplemental_exact_code_verified": true,
+      "supplemental_index_name_en": "CSI All Share Semiconductors & Semiconductor Equipment Index",
+      "supplemental_first_date": "2004-12-31",
+      "supplemental_last_date": "2026-08-31",
+      "supplemental_n_obs": 5263
+    },
+    "BOND_LONG": {
+      "official_code": "H11077",
+      "longbridge_status": "LONGBRIDGE_UNAVAILABLE",
+      "longbridge_resolved_symbol": null,
+      "longbridge_attempts": [
+        {
+          "symbol": "H11077.SH",
+          "static_returned": false,
+          "static_symbol": null,
+          "static_name": null,
+          "history_count": 0,
+          "history_error": "OpenApiException: (kind=ErrorKind.OpenApi, code=301600, trace_id=) invalid symbol"
+        },
+        {
+          "symbol": "H11077.SZ",
+          "static_returned": false,
+          "static_symbol": null,
+          "static_name": null,
+          "history_count": 0,
+          "history_error": "OpenApiException: (kind=ErrorKind.OpenApi, code=301600, trace_id=) invalid symbol"
+        }
+      ],
+      "supplemental_provider": "csindex",
+      "supplemental_status": "RESOLVED",
+      "supplemental_exact_code_verified": true,
+      "supplemental_index_name_en": "SSE 10-Year China Treasury Note Index (Futures Deliverables)",
+      "supplemental_first_date": "2008-12-31",
+      "supplemental_last_date": "2026-08-31",
+      "supplemental_n_obs": 4291
+    },
+    "BOND_MED": {
+      "official_code": "H00140",
+      "longbridge_status": "LONGBRIDGE_UNAVAILABLE",
+      "longbridge_resolved_symbol": null,
+      "longbridge_attempts": [
+        {
+          "symbol": "H00140.SH",
+          "static_returned": false,
+          "static_symbol": null,
+          "static_name": null,
+          "history_count": 0,
+          "history_error": "OpenApiException: (kind=ErrorKind.OpenApi, code=301600, trace_id=) invalid symbol"
+        },
+        {
+          "symbol": "H00140.SZ",
+          "static_returned": false,
+          "static_symbol": null,
+          "static_name": null,
+          "history_count": 0,
+          "history_error": "OpenApiException: (kind=ErrorKind.OpenApi, code=301600, trace_id=) invalid symbol"
+        }
+      ],
+      "supplemental_provider": "csindex",
+      "supplemental_status": "RESOLVED",
+      "supplemental_exact_code_verified": true,
+      "supplemental_index_name_en": "SSE 5-Year China Treasury Note (Full Price) Index",
+      "supplemental_first_date": "2007-12-31",
+      "supplemental_last_date": "2026-08-31",
+      "supplemental_n_obs": 4537
+    }
+  }
+}

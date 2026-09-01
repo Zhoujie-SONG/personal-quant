@@ -31,11 +31,45 @@ class BenchmarkCandidate:
     timezone: str | None
     benchmark_type: str
     index_launch_date: date | None
+    base_date: date | None
     known_backfilled_history: bool | None
+    series_kind: str | None
     status: str
     notes: str
+    primary_provider_status: str | None = None
     active: bool = True
     executable: bool = True
+
+
+@dataclass(frozen=True, slots=True)
+class OfficialSymbolProbeAttempt:
+    symbol: str
+    static_verified: bool
+    history_verified: bool
+    returned_official_code: str | None = None
+
+
+@dataclass(frozen=True, slots=True)
+class OfficialSymbolProbeDecision:
+    status: str
+    resolved_symbol: str | None
+
+
+def evaluate_official_symbol_probe(
+    official_code: str,
+    attempts: Sequence[OfficialSymbolProbeAttempt],
+) -> OfficialSymbolProbeDecision:
+    """Resolve only an exact official-code match with both probe gates passed."""
+    verified = [
+        attempt
+        for attempt in attempts
+        if attempt.static_verified
+        and attempt.history_verified
+        and attempt.returned_official_code == official_code
+    ]
+    if len(verified) == 1:
+        return OfficialSymbolProbeDecision("RESOLVED", verified[0].symbol)
+    return OfficialSymbolProbeDecision("LONGBRIDGE_UNAVAILABLE", None)
 
 
 def load_benchmark_registry(path: Path) -> tuple[dict[str, Any], list[BenchmarkCandidate]]:
@@ -64,6 +98,18 @@ def load_benchmark_registry(path: Path) -> tuple[dict[str, Any], list[BenchmarkC
         if status == "RESOLVED" and (not symbol or not provider):
             raise ValueError(f"RESOLVED benchmark {asset_id} requires symbol and provider")
         launch = row.get("index_launch_date")
+        base_date = row.get("base_date")
+        series_kind = str(row["series_kind"]) if row.get("series_kind") is not None else None
+        if asset_id in {"BOND_LONG", "BOND_MED"} and status == "RESOLVED":
+            if benchmark_type != "INDEX":
+                raise ValueError(f"{asset_id} must use an index benchmark")
+            if series_kind not in {"FULL_PRICE_INDEX", "TOTAL_RETURN_INDEX"}:
+                raise ValueError(
+                    f"{asset_id} requires FULL_PRICE_INDEX or TOTAL_RETURN_INDEX; "
+                    "yield series and clean-price substitutions are forbidden"
+                )
+            if str(symbol).upper() == "H01077":
+                raise ValueError("H01077 is the clean-price index and is forbidden for BOND_LONG")
         candidates.append(
             BenchmarkCandidate(
                 logical_asset_id=asset_id,
@@ -74,9 +120,16 @@ def load_benchmark_registry(path: Path) -> tuple[dict[str, Any], list[BenchmarkC
                 timezone=str(row["timezone"]) if row.get("timezone") is not None else None,
                 benchmark_type=benchmark_type,
                 index_launch_date=date.fromisoformat(str(launch)) if launch else None,
+                base_date=date.fromisoformat(str(base_date)) if base_date else None,
                 known_backfilled_history=row.get("known_backfilled_history"),
+                series_kind=series_kind,
                 status=status,
                 notes=str(row.get("notes", "")),
+                primary_provider_status=(
+                    str(row["primary_provider_status"])
+                    if row.get("primary_provider_status") is not None
+                    else None
+                ),
                 active=bool(row.get("active", True)),
                 executable=bool(row.get("executable", True)),
             )
@@ -106,6 +159,41 @@ def validate_levels(levels: pd.Series, *, asset_id: str) -> list[str]:
     if (gaps > 14).any():
         warnings.append(f"{asset_id}: {int((gaps > 14).sum())} calendar gaps exceed 14 days")
     return warnings
+
+
+def prepare_levels_for_analysis(
+    levels: pd.Series,
+    *,
+    asset_id: str,
+) -> tuple[pd.Series, list[str]]:
+    """Preserve raw anomalies as explicit missing values with audit warnings."""
+    if not isinstance(levels.index, pd.DatetimeIndex):
+        raise ValueError(f"{asset_id}: levels require a DatetimeIndex")
+    if levels.index.has_duplicates:
+        raise ValueError(f"{asset_id}: duplicate dates")
+    if not levels.index.is_monotonic_increasing:
+        raise ValueError(f"{asset_id}: non-monotonic dates")
+    numeric = pd.to_numeric(levels, errors="coerce")
+    if numeric.isna().any():
+        raise ValueError(f"{asset_id}: non-numeric or missing raw index levels")
+    warnings: list[str] = []
+    invalid = numeric <= 0
+    if invalid.any():
+        dates = ", ".join(numeric.index[invalid].strftime("%Y-%m-%d"))
+        warnings.append(
+            f"{asset_id}: {int(invalid.sum())} nonpositive raw level(s) set to missing "
+            f"for return calculation ({dates}); raw observations retained"
+        )
+        numeric = numeric.mask(invalid)
+    returns = simple_returns(numeric)
+    extreme = returns[returns.abs() > 0.50]
+    if not extreme.empty:
+        warnings.append(f"{asset_id}: {len(extreme)} daily returns exceed 50% absolute")
+    gaps = numeric.index.to_series().diff().dt.days.dropna()
+    if (gaps > 14).any():
+        warnings.append(f"{asset_id}: {int((gaps > 14).sum())} calendar gaps exceed 14 days")
+    numeric.name = levels.name
+    return numeric, warnings
 
 
 def simple_returns(levels: pd.Series) -> pd.Series:

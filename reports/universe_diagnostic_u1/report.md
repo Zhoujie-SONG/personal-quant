@@ -1,48 +1,35 @@
-# Universe Diagnostic U1 — Logical Asset Effective Breadth Check
+# Universe Diagnostic U1.1 — Effective Breadth Completion and Robustness
 
-## Answer first
+## Technical summary
 
-Nominal active risky assets: **15**  
-Analyzed common-window assets: **12**  
-Common-window effective breadth: **4.07**  
-Effective ratio (analyzed N denominator): **33.9%**
+All **15 active risky assets** now have verified economic benchmark histories and enter both EX_CASH matrices. Daily common-window effective breadth is **5.04** (33.6%); weekly robustness effective breadth is **4.83** (32.2%). Weekly is a fixed, pre-registered last-actual-observation-date intersection and is not a lag optimization.
 
 Structural redundancy candidates:
 - NASDAQ100 vs SP500
 - HSTECH vs HK_BROAD
 
-High-overlap but economically distinct (diagnostic only):
+Economically distinct high-correlation pairs:
 - CN_LARGE vs CN_SMALL
 - CN_LARGE vs CN_DIVIDEND
 - CN_LARGE vs CONSUMER
 - CN_SMALL vs CN_GROWTH
+- CN_SMALL vs SEMI
 - CN_SMALL vs HEALTHCARE
+- CN_GROWTH vs SEMI
 - CN_GROWTH vs HEALTHCARE
 
-Short-history assets:
-- None
-
-Unresolved benchmark mappings:
-- SEMI
-- BOND_LONG
-- BOND_MED
+Unresolved active benchmark mappings:
 - CASH
 
-**NO ASSET WAS AUTOMATICALLY REMOVED.**
+**NO ASSET AUTOMATICALLY REMOVED.**
 
-## Scope and interpretation
-
-This is a statistical redundancy diagnostic, not M2, a universe freeze, a vehicle-selection exercise, or a performance claim. It uses native index/spot levels only; no ETF prices, profitability metrics, forward-filled cross-market prices, artificial zero returns, or return-based asset selection are used. `N_eff` is descriptive and is not an optimal asset count.
-
-All histories are `HISTORICAL_LATEST`: the provider snapshot retrieved now may contain current corrected history and does not prove historical publication vintages. Metadata: retrieval cutoff **2026-09-01**, data retrieved at **2026-09-01T08:23:45.123383+00:00**, source baseline Git commit **1363bba058dae3ae79af2d6412868a55cf549ee9**, benchmark mapping SHA-256 **6432ac54d0b0aae969cefe7844dfce81df9aa89938c60dfd3ecbc30449df448e**. The containing U1 artifact commit is reported at handoff because a Git object cannot self-reference its own final hash.
-
-## 1. Benchmark mapping
+## All active risk assets are now measurable without ETF substitution
 
 - CN_LARGE: 000300.SH / longbridge / INDEX / RESOLVED
 - CN_SMALL: 000852.SH / longbridge / INDEX / RESOLVED
 - CN_GROWTH: 399006.SZ / longbridge / INDEX / RESOLVED
 - CN_DIVIDEND: 000922.SH / longbridge / INDEX / RESOLVED
-- SEMI: UNRESOLVED / none / INDEX / UNRESOLVED
+- SEMI: H30184 / csindex / PRICE_INDEX / RESOLVED / primary=LONGBRIDGE_UNAVAILABLE
 - HEALTHCARE: 000991.SH / longbridge / INDEX / RESOLVED
 - CONSUMER: 000932.SH / longbridge / INDEX / RESOLVED
 - COAL: 399998.SZ / longbridge / INDEX / RESOLVED
@@ -51,12 +38,16 @@ All histories are `HISTORICAL_LATEST`: the provider snapshot retrieved now may c
 - HSTECH: HSTECH.HK / longbridge / INDEX / RESOLVED
 - HK_BROAD: HSI.HK / longbridge / INDEX / RESOLVED
 - GOLD: Au99.99 / akshare / SPOT / RESOLVED
-- BOND_LONG: UNRESOLVED / none / INDEX / UNRESOLVED
-- BOND_MED: UNRESOLVED / none / INDEX / UNRESOLVED
+- BOND_LONG: H11077 / csindex / FULL_PRICE_INDEX / RESOLVED / primary=LONGBRIDGE_UNAVAILABLE
+- BOND_MED: H00140 / csindex / FULL_PRICE_INDEX / RESOLVED / primary=LONGBRIDGE_UNAVAILABLE
 - CASH: UNRESOLVED / none / CASH_PROXY / UNRESOLVED
 - OIL: UNRESOLVED / none / INDEX / UNRESOLVED
 
-The exact audited snapshot is in `benchmark_registry_snapshot.yaml`. Official mapping references:
+SEMI uses official **H30184** price-index history. BOND_LONG uses official **H11077 full-price** history; the clean-price derivative H01077 is explicitly forbidden. BOND_MED uses official **H00140 full-price** history. Longbridge static/history probes for each official code with both `.SH` and `.SZ` failed, so the registry preserves `LONGBRIDGE_UNAVAILABLE` while the supplemental source is the official CSI `index-perf` endpoint. No ETF or yield-change series is used.
+
+Exact static/history attempts and supplemental exact-code checks are preserved in `benchmark_probe_results.json`.
+
+Official references:
 
 - [Longbridge symbol and history documentation](https://open.longbridge.com/docs/quote/pull/history-candlestick)
 - [CSI 300 methodology](https://oss-ch.csindex.com.cn/static/html/csindex/public/uploads/indices/detail/files/zh_CN/000300_Index_Methodology_cn.pdf)
@@ -65,105 +56,70 @@ The exact audited snapshot is in `benchmark_registry_snapshot.yaml`. Official ma
 - [CSI industry methodology](https://oss-ch.csindex.com.cn/static/html/csindex/public/uploads/indices/detail/files/zh_CN/000841_Index_Methodology_cn.pdf)
 - [CSI All Share Health Care factsheet](https://oss-ch.csindex.com.cn/static/html/csindex/public/uploads/indices/detail/files/zh_CN/000991factsheet.pdf)
 - [CSI Coal methodology](https://oss-ch.csindex.com.cn/static/html/csindex/public/uploads/indices/detail/files/zh_CN/20231208175431-399998_Index_Methodology_cn.pdf)
+- [CSI semiconductor factsheet](https://oss-ch.csindex.com.cn/static/html/csindex/public/uploads/indices/detail/files/zh_CN/H30184factsheet.pdf)
+- [SSE 10-year Treasury announcement](https://www.sse.com.cn/market/sseindex/diclosure/c/c_20150911_3985075.shtml)
+- [CSI 10-year Treasury factsheet](https://oss-ch.csindex.com.cn/static/html/csindex/public/uploads/indices/detail/files/zh_CN/H11077factsheet.pdf)
+- [CSI 5-year Treasury factsheet](https://oss-ch.csindex.com.cn/static/html/csindex/public/uploads/indices/detail/files/zh_CN/H00140factsheet.pdf)
 - [SZSE ChiNext notice](https://www.szse.cn/disclosure/notice/general/t20100531_500454.html)
 - [Nasdaq-100 overview](https://www.nasdaq.com/products/global-indexes/nasdaq-100)
 - [S&P 500 official page](https://www.spglobal.com/spdji/en/indices/equity/sp-500/)
 - [Hang Seng TECH factsheet](https://www.hsi.com.hk/static/uploads/contents/en/dl_centre/factsheets/hsteche.pdf)
 - [Shanghai Gold Exchange daily quotes](https://www.sge.com.cn/sjzx/mrhq)
 
-## 2. Coverage and data quality
+## Daily and weekly breadth tell the same diagnostic story at different close alignment
 
-`coverage.csv` reports first/last valid date and observation count. Warnings are preserved rather than silently cleaned:
+Daily common window: **2020-07-28 to 2026-08-31**, **1392** observations, N=15, N_eff=5.04, ratio=33.6%.
+
+Weekly common window: **2020-08-07 to 2026-08-28**, **272** observations, N=15, N_eff=4.83, ratio=32.2%.
+
+Daily is primary. Weekly is the cross-timezone robustness view. Each asset contributes its final real observation of the week; returns are intersected on those actual dates. No market price or return is forward-filled or set to zero, and no alternative lag was searched.
+
+## Required pair evidence includes full-period and rolling correlations
+
+- NASDAQ100 / SP500: daily=0.932; weekly=0.925; 252d median=0.939 [p10=0.882, p90=0.965]; 756d median=0.931 [p10=0.917, p90=0.953]
+- HSTECH / HK_BROAD: daily=0.911; weekly=0.902; 252d median=0.940 [p10=0.888, p90=0.959]; 756d median=0.941 [p10=0.918, p90=0.950]
+- CN_GROWTH / SEMI: daily=0.789; weekly=0.777; 252d median=0.785 [p10=0.645, p90=0.897]; 756d median=0.778 [p10=0.676, p90=0.879]
+- BOND_LONG / BOND_MED: daily=0.737; weekly=0.882; 252d median=0.775 [p10=0.592, p90=0.914]; 756d median=0.730 [p10=0.682, p90=0.890]
+- CN_DIVIDEND / COAL: daily=0.740; weekly=0.738; 252d median=0.747 [p10=0.580, p90=0.875]; 756d median=0.747 [p10=0.701, p90=0.789]
+
+`pairwise_correlations.csv` contains maximum-history daily and weekly estimates. `rolling_pair_correlations.csv` contains the 252- and 756-observation distributions. Redundancy bands use raw rho, so negative correlation is not treated as duplication.
+
+## Daily clustering and eigenvalue spectra preserve the full candidate set
+
+Daily average-linkage clustering uses `sqrt(0.5 * (1-rho))`. Cluster order: **BOND_LONG, BOND_MED, NASDAQ100, SP500, GOLD, CN_DIVIDEND, COAL, HSTECH, HK_BROAD, SEMI, CN_SMALL, CN_LARGE, CN_GROWTH, HEALTHCARE, CONSUMER**. The daily and weekly eigenvalue spectra sum to **15.000** and **15.000**, respectively, matching their matrix dimension. See `correlation_heatmap.png`, `dendrogram.png`, `cluster_linkage.csv`, `eigenvalues.csv`, and `eigenvalues_weekly.csv`.
+
+Rolling 756-observation daily effective breadth: **median=4.64, p10=4.45, p90=5.18, min=4.39, max=5.21, latest=4.74**.
+
+## Scope, definitions, and data quality
+
+This is a descriptive redundancy diagnostic, not M2, a universe freeze, a vehicle-selection exercise, or a performance claim. `N_eff = N^2 / sum(lambda_i^2)` is not an optimal asset count. CASH remains excluded from EX_CASH and no artificial zero-return proxy is created. OIL remains inactive, `INDEX_ONLY / NON_EXECUTABLE`, and outside both matrices.
+
+All histories are unadjusted/native index or spot values with `HISTORICAL_LATEST` semantics. Retrieval cutoff: **2026-09-01**; latest retrieval: **2026-09-01T10:31:25.802048+00:00**; source baseline commit: **cf1c2b86b567e70d6f6cfcd91da32b0a01b074f9**; mapping SHA-256: **c08c8cb3669649984e07998c356da475f7dc8f4f68d40bd17fc00ee2647ed1ba**. The containing artifact commit is reported at handoff.
+
+Data-quality checks preserve rather than silently clean exceptions:
 
 - CN_LARGE: 1 calendar gaps exceed 14 days
+- SEMI: 1 nonpositive raw level(s) set to missing for return calculation (2013-06-28); raw observations retained
 
-Unresolved assets remain part of the nominal candidate universe but cannot enter numeric matrices. CASH is excluded from EX_CASH because no real cash-return series is available; no zero-return proxy was manufactured. OIL remains inactive, `INDEX_ONLY / NON_EXECUTABLE`, and is excluded.
-
-## 3. Common window
-
-The common daily-return window is **2020-07-28 to 2026-08-31**, with **1392** date-level intersection observations across **12** analyzable EX_CASH assets. No asset was dropped merely to lengthen this window.
-
-## 4. Pairwise maximum-history correlations
-
-`pairwise_correlations.csv` contains daily primary and weekly robustness results. Each pair uses only its own shared valid dates and records start, end, and n. Redundancy bands use raw rho; negative correlation is never treated as redundancy through `abs(rho)`.
-
-## 5. Rolling correlations
-
-`rolling_pair_correlations.csv` provides 252- and 756-observation statistics for required focus pairs and GOLD-versus-risk-asset comparisons. Unresolved pairs are explicitly `UNAVAILABLE`; insufficient windows are `SKIPPED_SHORT_HISTORY`.
-
-## 6. Clustering
-
-Average linkage is computed from daily common-window correlation distance `sqrt(0.5 * (1-rho))`. Cluster order: **NASDAQ100, SP500, GOLD, CN_DIVIDEND, COAL, HSTECH, HK_BROAD, CONSUMER, HEALTHCARE, CN_SMALL, CN_LARGE, CN_GROWTH**. The exact merge rows are in `cluster_linkage.csv`; see `dendrogram.png` and `correlation_heatmap.png`.
-
-## 7. Eigenvalue spectrum
-
-The descending eigenvalues are in `eigenvalues.csv`. Largest eigenvalue: **5.220**; sum: **12.000** (equal to analyzed N within numeric precision).
-
-## 8. Participation ratio
-
-EX_CASH common-window `N_eff = N^2 / sum(lambda_i^2)` is **4.07** for analyzed N=12, ratio **33.9%**. The nominal active risky count remains 15; unresolved mappings explain the gap between nominal and analyzed N.
-
-Rolling 756-observation effective breadth: **median=3.84, p10=3.66, p90=4.11, min=3.60, max=4.18, latest=3.95**.
-
-## 9. Required focus pairs
-
-- CN_LARGE vs CN_DIVIDEND: rho=0.778, n=2582, 2016-01-14 to 2026-09-01, band=HIGH
-- CN_GROWTH vs SEMI: unavailable (unresolved or missing data)
-- CN_DIVIDEND vs COAL: rho=0.740, n=2582, 2016-01-14 to 2026-09-01, band=MODERATE
-- NASDAQ100 vs SP500: rho=0.932, n=4189, 2010-01-05 to 2026-08-31, band=VERY_HIGH
-- HSTECH vs HK_BROAD: rho=0.911, n=1499, 2020-07-28 to 2026-09-01, band=VERY_HIGH
-- BOND_LONG vs BOND_MED: unavailable (unresolved or missing data)
-
-GOLD versus available risk assets:
-
-- CN_LARGE vs GOLD: rho=0.088, n=2353
-- CN_SMALL vs GOLD: rho=0.100, n=2353
-- CN_GROWTH vs GOLD: rho=0.052, n=2353
-- CN_DIVIDEND vs GOLD: rho=0.083, n=2352
-- HEALTHCARE vs GOLD: rho=0.057, n=2353
-- CONSUMER vs GOLD: rho=0.047, n=2353
-- COAL vs GOLD: rho=0.053, n=2353
-- NASDAQ100 vs GOLD: rho=0.003, n=2273
-- SP500 vs GOLD: rho=0.014, n=2273
-- HSTECH vs GOLD: rho=0.087, n=1434
-- HK_BROAD vs GOLD: rho=0.081, n=2284
-
-## 10. Unresolved benchmark/data issues
-
-- SEMI
-- BOND_LONG
-- BOND_MED
-- CASH
-
-These are evidence gaps, not rejection decisions. SEMI was not replaced by an ETF or name-similar index. BOND_LONG and BOND_MED were not approximated with yield changes. CASH was not assigned zero returns.
-
-## 11. Purely diagnostic conclusion
-
-Nominal active risky assets: 15
-
-Common-window effective breadth: 4.07
-
-Effective ratio: 33.9% of analyzed N (12); nominal-universe coverage is separately reported.
-
-Structural redundancy candidates:
-- NASDAQ100 vs SP500
-- HSTECH vs HK_BROAD
-
-High-overlap but economically distinct:
-- CN_LARGE vs CN_SMALL
-- CN_LARGE vs CN_DIVIDEND
-- CN_LARGE vs CONSUMER
-- CN_SMALL vs CN_GROWTH
-- CN_SMALL vs HEALTHCARE
-- CN_GROWTH vs HEALTHCARE
-
-Short-history assets:
+Coverage and short-history status are in `coverage.csv`. Short-history assets:
 - None
 
-Unresolved benchmark mappings:
-- SEMI
-- BOND_LONG
-- BOND_MED
-- CASH
+## Limitations and freeze-readiness boundary
 
-NO ASSET WAS AUTOMATICALLY REMOVED.
+The supplemental CSI histories are current official `HISTORICAL_LATEST` snapshots, not historical publication vintages. Daily cross-market correlations pair same calendar dates despite asynchronous closes; weekly results reduce that sensitivity but do not establish a causal or optimal universe. The benchmark registry remains candidate-only, and no Universe v1 is generated.
+
+## Freeze gate
+
+ANALYZED_ASSETS: CN_LARGE, CN_SMALL, CN_GROWTH, CN_DIVIDEND, SEMI, HEALTHCARE, CONSUMER, COAL, NASDAQ100, SP500, HSTECH, HK_BROAD, GOLD, BOND_LONG, BOND_MED
+
+DAILY_N_EFF: 5.04
+
+WEEKLY_N_EFF: 4.83
+
+STRUCTURAL_REDUNDANCY_CANDIDATES: NASDAQ100 vs SP500, HSTECH vs HK_BROAD
+
+ECONOMICALLY_DISTINCT_HIGH_CORRELATION: CN_LARGE vs CN_SMALL, CN_LARGE vs CN_DIVIDEND, CN_LARGE vs CONSUMER, CN_SMALL vs CN_GROWTH, CN_SMALL vs SEMI, CN_SMALL vs HEALTHCARE, CN_GROWTH vs SEMI, CN_GROWTH vs HEALTHCARE
+
+UNRESOLVED_BENCHMARKS: CASH
+
+NO ASSET AUTOMATICALLY REMOVED.

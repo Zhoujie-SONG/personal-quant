@@ -52,16 +52,22 @@ benchmarks:
     status: RESOLVED
     notes: Longbridge static-info verified; CSI official index code 000922.
   - logical_asset_id: SEMI
-    benchmark_name: China semiconductor economic benchmark
-    benchmark_symbol: null
-    provider: null
+    benchmark_name: CSI All Share Semiconductors & Semiconductor Equipment Index
+    benchmark_symbol: H30184
+    provider: csindex
     currency: CNY
     timezone: Asia/Shanghai
     benchmark_type: INDEX
-    index_launch_date: null
-    known_backfilled_history: null
-    status: UNRESOLVED
-    notes: No representative semiconductor index daily-bar mapping was verified in Longbridge; ETF substitution is forbidden.
+    series_kind: PRICE_INDEX
+    index_launch_date: 2013-07-15
+    base_date: 2004-12-31
+    known_backfilled_history: true
+    status: RESOLVED
+    primary_provider_status: LONGBRIDGE_UNAVAILABLE
+    notes: >-
+      Official code and history verified through the CSI index-perf endpoint.
+      Longbridge probes H30184.SH/H30184.SZ returned no static row and invalid-symbol
+      history errors. ETF 512480 is not used.
   - logical_asset_id: HEALTHCARE
     benchmark_name: CSI All Share Health Care Index
     benchmark_symbol: 000991.SH
@@ -151,27 +157,40 @@ benchmarks:
     status: RESOLVED
     notes: Explicit SGE spot benchmark; not an ETF and not an execution vehicle.
   - logical_asset_id: BOND_LONG
-    benchmark_name: Long-duration China government bond total-return benchmark
-    benchmark_symbol: null
-    provider: null
+    benchmark_name: SSE 10-Year China Treasury Note Index
+    benchmark_symbol: H11077
+    provider: csindex
     currency: CNY
     timezone: Asia/Shanghai
     benchmark_type: INDEX
-    index_launch_date: null
-    known_backfilled_history: null
-    status: UNRESOLVED
-    notes: No reliable total-return index history mapping was verified; bond yield changes are not substituted for bond returns.
+    series_kind: FULL_PRICE_INDEX
+    index_launch_date: 2013-03-07
+    base_date: 2008-12-31
+    known_backfilled_history: true
+    status: RESOLVED
+    primary_provider_status: LONGBRIDGE_UNAVAILABLE
+    notes: >-
+      Official full-price index code and history verified through the CSI
+      index-perf endpoint. H01077 is the clean-price derivative and is not used;
+      no yield-change or ETF substitution is permitted. Longbridge
+      H11077.SH/H11077.SZ probes were unavailable.
   - logical_asset_id: BOND_MED
-    benchmark_name: Medium-duration China government bond total-return benchmark
-    benchmark_symbol: null
-    provider: null
+    benchmark_name: SSE 5-Year China Treasury Note (Full Price) Index
+    benchmark_symbol: H00140
+    provider: csindex
     currency: CNY
     timezone: Asia/Shanghai
     benchmark_type: INDEX
-    index_launch_date: null
-    known_backfilled_history: null
-    status: UNRESOLVED
-    notes: No reliable total-return index history mapping was verified; bond yield changes are not substituted for bond returns.
+    series_kind: FULL_PRICE_INDEX
+    index_launch_date: 2012-09-12
+    base_date: 2007-12-31
+    known_backfilled_history: true
+    status: RESOLVED
+    primary_provider_status: LONGBRIDGE_UNAVAILABLE
+    notes: >-
+      Official full-price index code and history verified through the CSI
+      index-perf endpoint. Yield changes and ETF 511010 are not used. Longbridge
+      H00140.SH/H00140.SZ probes were unavailable.
   - logical_asset_id: CASH
     benchmark_name: Cash return proxy
     benchmark_symbol: null

@@ -78,6 +78,6 @@ Live validation on 2026-09-01 used AkShare 1.18.60 and passed all three adapter 
 
 ## M1B Longbridge gate status
 
-The refreshed 2026-09-01 real gate passed ETF static, ETF bars, index bars, trading calendar, and realtime quote. The account reported CN LV1 real-time quote entitlement. The earlier expired-token result is superseded; credentials were process-only and were not persisted. The probe continues to report `NO_CREDENTIAL` explicitly when environment variables are absent.
+The refreshed 2026-09-01 real gate passed ETF static, ETF bars, index bars, trading calendar, and realtime quote. The account reported CN LV1 real-time quote entitlement, and the real Longbridge integration test passed (`1 passed`). The earlier expired-token result is superseded; credentials were process-only and were not persisted. The probe continues to report `NO_CREDENTIAL` explicitly when environment variables are absent.
 
 The subsequent real Longbridge-vs-AkShare reconciliation did not reach value comparison: Longbridge completed, while the AkShare upstream Eastmoney history endpoint closed both the proxied and direct connections. Operational status is therefore `BLOCKED / NO COMPARISON RESULT`, not reconciliation `FAIL`.

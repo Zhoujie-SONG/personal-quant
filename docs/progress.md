@@ -85,7 +85,7 @@ Completed:
 
 ## M1B — AkShare supplemental provider and metadata PIT foundation
 
-Status: **COMPLETE (offline gate and provider capability gates passed) / REAL RECONCILIATION UPSTREAM-BLOCKED**
+Status: **COMPLETE (offline gate, Longbridge integration, and provider capability gates passed) / REAL RECONCILIATION UPSTREAM-BLOCKED**
 
 Completed:
 
@@ -98,7 +98,7 @@ Completed:
 - Added canonical trading-calendar observation storage with half-day/session preservation.
 - Added idempotent `snapshot_etf_metadata.py` and tolerance-configured `reconcile_market_data.py` scripts.
 - Added offline tests for availability classification, snapshot discipline, revision preservation, Economic/System Replay semantics, DataFrame/schema boundaries, index/calendar behavior, snapshot idempotency, and reconciliation tolerances.
-- Real AkShare integration passed in the original M1B run. The refreshed Longbridge capability gate passed ETF static, ETF bars, index bars, CN trading calendar, and realtime quote.
+- Real AkShare integration passed in the original M1B run. With refreshed process-only credentials, the Longbridge integration test passed (`1 passed`) and the capability gate passed ETF static, ETF bars, index bars, CN trading calendar, and realtime quote.
 - A subsequent end-to-end reconciliation attempt reached Longbridge successfully but produced no comparison result because the AkShare/Eastmoney historical endpoint closed both proxied and direct connections; this is recorded as upstream-blocked rather than a data mismatch.
 
 ## Next milestone recommendation (paused)

@@ -6,7 +6,7 @@ Observed and revalidated on 2026-09-01. The machine-readable authority is `confi
 
 ### Longbridge
 
-The refreshed credentials initialized successfully. The account reported CN LV1 real-time quote entitlement, and all five read-only capability probes passed.
+The refreshed credentials initialized successfully. The account reported CN LV1 real-time quote entitlement, all five read-only capability probes passed, and the real Longbridge integration test passed (`1 passed`).
 
 | Capability | Result | Detail |
 | --- | --- | --- |

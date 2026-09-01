@@ -19,6 +19,8 @@ SCALE_REQUIRED = {
     "基金代码", "基金简称", "基金类别", "上市日期", "基金份额", "基金管理人", "净值"
 }
 HISTORY_REQUIRED = {"日期", "开盘", "收盘", "最高", "最低", "成交量", "成交额"}
+ETF_SPOT_SOURCE = "akshare:fund_etf_spot_em"
+SZSE_SCALE_SOURCE = "akshare:fund_etf_scale_szse"
 
 
 def map_etf_spot_frame(frame: Any, *, retrieved_at: datetime) -> list[RawETFMetadataObservation]:
@@ -45,7 +47,7 @@ def map_etf_spot_frame(frame: Any, *, retrieved_at: datetime) -> list[RawETFMeta
                 snapshot_at=snapshot_at,
                 available_time=snapshot_at,
                 retrieved_at=retrieved_at,
-                provider="akshare",
+                provider=ETF_SPOT_SOURCE,
                 availability_class=DataAvailabilityClass.SNAPSHOT_ONLY,
                 provider_payload_hash=_payload_hash(payload),
                 provider_payload=payload,
@@ -78,7 +80,7 @@ def map_szse_scale_frame(frame: Any, *, retrieved_at: datetime) -> list[RawETFMe
                 snapshot_at=snapshot_at,
                 available_time=retrieved_at,
                 retrieved_at=retrieved_at,
-                provider="akshare",
+                provider=SZSE_SCALE_SOURCE,
                 availability_class=DataAvailabilityClass.SNAPSHOT_ONLY,
                 provider_payload_hash=_payload_hash(payload),
                 provider_payload=payload,

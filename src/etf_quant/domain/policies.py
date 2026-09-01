@@ -32,3 +32,28 @@ class DailyBarAvailabilityPolicy:
         if session_close.tzinfo is None or session_close.utcoffset() is None:
             raise DataValidationError("session_close must be timezone-aware")
         return session_close + self.eod_delay
+
+
+@dataclass(frozen=True, slots=True)
+class HistoricalCalendarAvailabilityPolicy:
+    """Economic availability policy for historical trading-session facts.
+
+    In the absence of publication vintages, an open-session observation is
+    conservatively usable from that session's close. This is a research policy,
+    not a claim about when an exchange or provider originally published it.
+    """
+
+    version: str = "v1"
+
+    def __post_init__(self) -> None:
+        if not self.version.strip():
+            raise DataValidationError("calendar availability policy version is required")
+
+    @property
+    def policy_id(self) -> str:
+        return f"historical_calendar_session_close_{self.version}"
+
+    def available_at(self, session_close: datetime) -> datetime:
+        if session_close.tzinfo is None or session_close.utcoffset() is None:
+            raise DataValidationError("session_close must be timezone-aware")
+        return session_close

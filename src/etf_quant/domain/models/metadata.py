@@ -8,6 +8,7 @@ from zoneinfo import ZoneInfo
 from etf_quant.domain.enums import (
     AssetClass,
     DataAvailabilityClass,
+    HistoricalDataSemantics,
     IndexHistoryStatus,
 )
 from etf_quant.domain.exceptions import DataValidationError
@@ -118,10 +119,14 @@ class TradingCalendarObservation:
     available_time: datetime
     ingest_time: datetime
     source: str
+    historical_data_semantics: HistoricalDataSemantics
+    availability_policy_id: str
 
     def __post_init__(self) -> None:
-        if not self.market or not self.source:
-            raise DataValidationError("market and source are required")
+        if not self.market or not self.source or not self.availability_policy_id:
+            raise DataValidationError(
+                "market, source, and availability_policy_id are required"
+            )
         _require_aware(self.session_open, "session_open")
         _require_aware(self.session_close, "session_close")
         _require_aware(self.available_time, "available_time")

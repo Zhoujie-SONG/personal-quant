@@ -101,6 +101,20 @@ Completed:
 - Real AkShare integration passed in the original M1B run. With refreshed process-only credentials, the Longbridge integration test passed (`1 passed`) and the capability gate passed ETF static, ETF bars, index bars, CN trading calendar, and realtime quote.
 - A subsequent end-to-end reconciliation attempt reached Longbridge successfully but produced no comparison result because the AkShare/Eastmoney historical endpoint closed both proxied and direct connections; this is recorded as upstream-blocked rather than a data mismatch.
 
+## M1B.1 — Calendar PIT and metadata observation semantics fix
+
+Status: **COMPLETE (offline gate passed)**
+
+Completed:
+
+- Separated historical calendar economic availability from system ingestion with the explicit `historical_calendar_session_close_v1` policy and `HISTORICAL_LATEST` provenance.
+- Made later-downloaded calendar history visible to Economic PIT after the historical session close while preserving the ingestion gate for System Replay.
+- Added `get_metadata_observations` to return all eligible ETF metadata observations with source provenance intact.
+- Qualified AkShare metadata sources by endpoint so spot and SZSE scale observations remain distinguishable; market-bar reconciliation source semantics are unchanged.
+- Removed implicit cross-source whole-row selection: `get_metadata` now requires explicit resolution whenever multiple eligible sources exist.
+- Applied snapshot-time eligibility consistently to Index metadata and rejected naive `research_data_cutoff` values.
+- Removed duplicated ETF snapshot eligibility logic and documented the future field-level `MetadataResolver` contract without implementing M2 resolution or selection.
+
 ## Next milestone recommendation (paused)
 
-M2 is explicitly paused after M1B. Vehicle Selector, final Logical Asset universe, strategy, backtest, Macro, LLM, GBDT, portfolio construction, optimization, broker integration, and live orders remain out of scope.
+M2 remains explicitly paused after M1B.1. Vehicle Selector, final Logical Asset universe, strategy, backtest, Macro, LLM, GBDT, portfolio construction, optimization, broker integration, and live orders remain out of scope.

@@ -4,8 +4,11 @@ from dataclasses import replace
 from datetime import date, datetime, timezone
 from decimal import Decimal
 
+import pytest
+
 from etf_quant.data.repositories.metadata_repository import MetadataRepository
 from etf_quant.domain.enums import AssetClass, DataAvailabilityClass, PITQueryMode
+from etf_quant.domain.exceptions import DataValidationError
 from etf_quant.domain.models.metadata import ETFMetadataObservation
 
 
@@ -157,3 +160,60 @@ def test_delisted_etf_and_unknown_fields_are_preserved(tmp_path) -> None:
     assert stored.iopv is None
     assert stored.tracking_index is None
     assert stored.asset_class is AssetClass.UNKNOWN
+
+
+def test_multi_source_metadata_requires_explicit_resolution_and_preserves_observations(
+    tmp_path,
+) -> None:
+    repository = MetadataRepository(tmp_path)
+    observed_at = datetime(2026, 9, 1, 8, tzinfo=timezone.utc)
+    spot = replace(
+        observation(
+            snapshot_at=observed_at,
+            available_time=observed_at,
+            ingest_time=observed_at,
+            availability_class=DataAvailabilityClass.SNAPSHOT_ONLY,
+            payload_hash="akshare-spot",
+            effective_from=observed_at.date(),
+        ),
+        source="akshare:fund_etf_spot_em",
+    )
+    scale = replace(
+        spot,
+        source="akshare:fund_etf_scale_szse",
+        provider_payload_hash="szse-scale",
+        iopv=None,
+        shares=Decimal("100000000"),
+    )
+    repository.append_etf_metadata([spot, scale])
+
+    observations = repository.get_metadata_observations(
+        spot.symbol,
+        as_of=datetime(2026, 9, 1, 9, tzinfo=timezone.utc),
+        mode=PITQueryMode.ECONOMIC,
+    )
+    assert {item.source for item in observations} == {
+        "akshare:fund_etf_spot_em",
+        "akshare:fund_etf_scale_szse",
+    }
+    assert next(
+        item for item in observations if item.source == "akshare:fund_etf_spot_em"
+    ).iopv == Decimal("4.00")
+    assert next(
+        item
+        for item in observations
+        if item.source == "akshare:fund_etf_scale_szse"
+    ).shares == Decimal("100000000")
+
+    with pytest.raises(DataValidationError, match="explicit resolution"):
+        repository.get_metadata(
+            spot.symbol,
+            as_of=datetime(2026, 9, 1, 9, tzinfo=timezone.utc),
+            mode=PITQueryMode.ECONOMIC,
+        )
+    assert repository.get_metadata(
+        spot.symbol,
+        as_of=datetime(2026, 9, 1, 9, tzinfo=timezone.utc),
+        mode=PITQueryMode.ECONOMIC,
+        source="akshare:fund_etf_scale_szse",
+    ) == scale

@@ -1,4 +1,4 @@
-# Provider contracts — M0/M1A/M1A.1/M1A.2/M1B
+# Provider contracts — M0/M1A/M1A.1/M1A.2/M1B/M1B.1
 
 ## Boundary
 
@@ -38,6 +38,8 @@ All four calls are read-only and may be retried only for transient server, rate-
 
 The SDK documents a sub-month trading-day query limit; the adapter chunks longer date intervals. Historical bar requests always consult/write the raw cache to conserve Longbridge's monthly unique-symbol quota.
 
+Historical Longbridge trading-calendar responses are classified as `HISTORICAL_LATEST`. Their retrieval timestamp is the system `ingest_time`, not their economic availability. Canonical normalization applies the explicit `historical_calendar_session_close_v1` policy: an observed open session becomes economically available at that session's close. This policy permits later-downloaded history in Economic PIT while System Replay continues to require actual ingestion; it does not claim access to provider calendar publication vintages.
+
 Before treating cached daily bars as complete, the adapter obtains expected CN trading dates through the trading-calendar endpoint and computes the configured finalization cutoff for each date. `requested_coverage` is audit history only. A returned date before `session_close + EOD delay` is `provisional`; only a response retrieved at or after the cutoff enters `finalized_dates`. Missing and provisional expected dates remain retryable on the next call. The adapter and canonical normalizer receive the same explicit `DailyBarAvailabilityPolicy` instance.
 
 Longbridge historical OHLCV is labelled `HISTORICAL_LATEST`: it is the provider's latest history as retrieved, not evidence of the exact revision visible at the historical date. `TRUE_HISTORICAL_VINTAGE` may be used only if a provider contract can reproduce timestamped historical revisions. Economic availability, system observation, provider historical latest, and true historical vintage are four separate concepts.
@@ -73,6 +75,8 @@ Only three live-verified endpoints are connected:
 | `fund_etf_hist_em(adjust="")` | Unadjusted OHLCV/turnover reconciliation | `HISTORICAL_LATEST`, never formal market input |
 
 The mapper checks named required columns, tolerates only declared optional columns, and raises `AkShareSchemaError` on schema break. It never reads columns by position. Empty, `--`, `---`, `None`, NaN and NaT are missing—not zero. Required invalid numerics raise `AkShareDataError`. AkShare daily volume is explicitly converted from lots to shares (`×100`); turnover remains provider-reported yuan.
+
+Canonical metadata provenance is endpoint-qualified: spot observations use `akshare:fund_etf_spot_em` and SZSE scale observations use `akshare:fund_etf_scale_szse`. This prevents complementary endpoint rows from masquerading as one source during PIT resolution. AkShare market-bar reconciliation continues to use the provider-level `akshare` source.
 
 Live validation on 2026-09-01 used AkShare 1.18.60 and passed all three adapter endpoints. Network tests carry the `integration` marker and default pytest remains offline.
 

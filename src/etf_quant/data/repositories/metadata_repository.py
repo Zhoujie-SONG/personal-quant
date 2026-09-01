@@ -11,6 +11,7 @@ from typing import Iterable
 from zoneinfo import ZoneInfo
 
 from etf_quant.domain.enums import AssetClass, DataAvailabilityClass, PITQueryMode
+from etf_quant.domain.exceptions import DataValidationError
 from etf_quant.domain.models.metadata import ETFMetadataObservation, IndexMetadata
 
 
@@ -62,6 +63,43 @@ class MetadataRepository:
         source: str | None = None,
         research_data_cutoff: datetime | None = None,
     ) -> ETFMetadataObservation | None:
+        eligible = self.get_metadata_observations(
+            symbol,
+            as_of=as_of,
+            mode=mode,
+            source=source,
+            research_data_cutoff=research_data_cutoff,
+        )
+        if not eligible:
+            return None
+        eligible_sources = {item.source for item in eligible}
+        if source is None and len(eligible_sources) > 1:
+            raise DataValidationError(
+                "multiple eligible metadata sources require explicit resolution: "
+                f"{sorted(eligible_sources)}"
+            )
+        return max(
+            eligible,
+            key=lambda item: (
+                item.effective_from or date.min,
+                item.snapshot_at or datetime.min.replace(tzinfo=timezone.utc),
+                item.available_time,
+                item.ingest_time,
+                item.provider_payload_hash,
+            ),
+        )
+
+    def get_metadata_observations(
+        self,
+        symbol: str,
+        *,
+        as_of: datetime,
+        mode: PITQueryMode,
+        research_data_cutoff: datetime | None = None,
+        source: str | None = None,
+    ) -> list[ETFMetadataObservation]:
+        """Return every eligible immutable observation with provenance intact."""
+
         _validate_time(as_of, "as_of")
         if research_data_cutoff is not None:
             _validate_time(research_data_cutoff, "research_data_cutoff")
@@ -79,11 +117,10 @@ class MetadataRepository:
             item for item in candidates
             if _metadata_eligible(item, as_of, mode, research_data_cutoff)
         ]
-        if not eligible:
-            return None
-        return max(
+        return sorted(
             eligible,
             key=lambda item: (
+                item.source,
                 item.effective_from or date.min,
                 item.snapshot_at or datetime.min.replace(tzinfo=timezone.utc),
                 item.available_time,
@@ -128,6 +165,8 @@ class MetadataRepository:
         research_data_cutoff: datetime | None = None,
     ) -> IndexMetadata | None:
         _validate_time(as_of, "as_of")
+        if research_data_cutoff is not None:
+            _validate_time(research_data_cutoff, "research_data_cutoff")
         with self._connect() as connection:
             rows = connection.execute(
                 "SELECT payload_json FROM index_metadata_observations WHERE index_code = ?",
@@ -192,11 +231,6 @@ def _metadata_eligible(
         DataAvailabilityClass.FORWARD_COLLECTED_PIT,
     } and (item.snapshot_at is None or item.snapshot_at > as_of):
         return False
-    if item.availability_class in {
-        DataAvailabilityClass.SNAPSHOT_ONLY,
-        DataAvailabilityClass.FORWARD_COLLECTED_PIT,
-    } and (item.snapshot_at is None or item.snapshot_at > as_of):
-        return False
     if mode is PITQueryMode.SYSTEM_REPLAY and item.ingest_time > as_of:
         return False
     if research_data_cutoff is not None and item.ingest_time > research_data_cutoff:
@@ -216,6 +250,11 @@ def _index_eligible(
     if item.effective_to and item.effective_to < as_of_date:
         return False
     if item.available_time > as_of:
+        return False
+    if item.availability_class in {
+        DataAvailabilityClass.SNAPSHOT_ONLY,
+        DataAvailabilityClass.FORWARD_COLLECTED_PIT,
+    } and (item.snapshot_at is None or item.snapshot_at > as_of):
         return False
     if mode is PITQueryMode.SYSTEM_REPLAY and item.ingest_time > as_of:
         return False

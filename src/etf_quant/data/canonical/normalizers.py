@@ -7,6 +7,7 @@ from etf_quant.domain.enums import (
     AssetClass,
     DataAvailabilityClass,
     Exchange,
+    HistoricalDataSemantics,
     InstrumentType,
     Market,
 )
@@ -18,7 +19,10 @@ from etf_quant.domain.models.metadata import (
     TradingCalendarObservation,
 )
 from etf_quant.domain.models.trading_calendar import TradingCalendarEntry
-from etf_quant.domain.policies import DailyBarAvailabilityPolicy
+from etf_quant.domain.policies import (
+    DailyBarAvailabilityPolicy,
+    HistoricalCalendarAvailabilityPolicy,
+)
 from etf_quant.providers.dto import (
     RawETFMetadataObservation,
     RawInstrument,
@@ -111,8 +115,11 @@ def normalize_trading_day(raw: RawTradingDay) -> TradingCalendarEntry:
 
 def normalize_trading_calendar_observation(
     raw: RawTradingDay,
+    availability_policy: HistoricalCalendarAvailabilityPolicy,
 ) -> TradingCalendarObservation:
     entry = normalize_trading_day(raw)
+    if entry.session_close is None:
+        raise DataNormalizationError("open trading day is missing session_close")
     return TradingCalendarObservation(
         market=entry.market.value,
         trade_date=entry.trade_date,
@@ -120,9 +127,11 @@ def normalize_trading_calendar_observation(
         session_open=entry.session_open,
         session_close=entry.session_close,
         is_half_day=entry.is_half_day,
-        available_time=raw.retrieved_at,
+        available_time=availability_policy.available_at(entry.session_close),
         ingest_time=raw.retrieved_at,
         source=raw.provider,
+        historical_data_semantics=HistoricalDataSemantics.HISTORICAL_LATEST,
+        availability_policy_id=availability_policy.policy_id,
     )
 
 

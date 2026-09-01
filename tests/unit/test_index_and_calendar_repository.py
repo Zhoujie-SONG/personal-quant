@@ -4,17 +4,22 @@ from datetime import date, datetime, timezone
 
 import pytest
 
-from etf_quant.data.canonical.normalizers import normalize_trading_day
+from etf_quant.data.canonical.normalizers import (
+    normalize_trading_calendar_observation,
+    normalize_trading_day,
+)
 from etf_quant.data.repositories.calendar_repository import TradingCalendarRepository
 from etf_quant.data.repositories.metadata_repository import MetadataRepository
 from etf_quant.domain.enums import (
     DataAvailabilityClass,
+    HistoricalDataSemantics,
     IndexHistoryStatus,
     Market,
     PITQueryMode,
 )
 from etf_quant.domain.models.metadata import IndexMetadata, TradingCalendarObservation
 from etf_quant.domain.exceptions import DataNormalizationError
+from etf_quant.domain.policies import HistoricalCalendarAvailabilityPolicy
 from etf_quant.providers.dto import RawTradingDay
 
 
@@ -63,6 +68,8 @@ def test_trading_calendar_repository_preserves_half_day_and_pit_modes(tmp_path) 
         available_time=datetime(2018, 12, 31, tzinfo=timezone.utc),
         ingest_time=datetime(2026, 1, 2, tzinfo=timezone.utc),
         source="longbridge",
+        historical_data_semantics=HistoricalDataSemantics.HISTORICAL_LATEST,
+        availability_policy_id="fixture-calendar-policy",
     )
     assert repository.append_entries([item]) == 1
     economic = repository.get_calendar(
@@ -89,6 +96,89 @@ def test_trading_calendar_repository_preserves_half_day_and_pit_modes(tmp_path) 
         as_of=datetime(2026, 1, 3, tzinfo=timezone.utc),
         mode=PITQueryMode.SYSTEM_REPLAY,
     ) == [item]
+
+
+def test_historical_calendar_downloaded_later_has_separate_economic_and_replay_time(
+    tmp_path,
+) -> None:
+    raw = RawTradingDay(
+        market="CN",
+        trade_date=date(2019, 1, 2),
+        is_half_day=False,
+        retrieved_at=datetime(2026, 1, 2, 8, tzinfo=timezone.utc),
+        provider="longbridge",
+        sdk_version="test",
+    )
+    policy = HistoricalCalendarAvailabilityPolicy()
+    item = normalize_trading_calendar_observation(raw, policy)
+    repository = TradingCalendarRepository(tmp_path)
+    assert repository.append_entries([item]) == 1
+    after_session_close = datetime(2019, 1, 2, 7, tzinfo=timezone.utc)
+
+    assert item.available_time == item.session_close
+    assert item.ingest_time == raw.retrieved_at
+    assert item.historical_data_semantics is HistoricalDataSemantics.HISTORICAL_LATEST
+    assert item.availability_policy_id == "historical_calendar_session_close_v1"
+    assert repository.get_calendar(
+        Market.CN,
+        raw.trade_date,
+        raw.trade_date,
+        as_of=after_session_close,
+        mode=PITQueryMode.ECONOMIC,
+    ) == [item]
+    assert repository.get_calendar(
+        Market.CN,
+        raw.trade_date,
+        raw.trade_date,
+        as_of=after_session_close,
+        mode=PITQueryMode.SYSTEM_REPLAY,
+    ) == []
+    assert repository.get_calendar(
+        Market.CN,
+        raw.trade_date,
+        raw.trade_date,
+        as_of=datetime(2026, 1, 2, 9, tzinfo=timezone.utc),
+        mode=PITQueryMode.SYSTEM_REPLAY,
+    ) == [item]
+
+
+def test_index_snapshot_gate_and_naive_research_cutoff(tmp_path) -> None:
+    snapshot_at = datetime(2026, 1, 2, tzinfo=timezone.utc)
+    item = IndexMetadata(
+        index_code="SNAPSHOT.INDEX",
+        base_date=None,
+        launch_date=None,
+        methodology_version=None,
+        is_total_return=None,
+        source="fixture",
+        availability_class=DataAvailabilityClass.SNAPSHOT_ONLY,
+        effective_from=None,
+        effective_to=None,
+        available_time=datetime(2019, 1, 1, tzinfo=timezone.utc),
+        ingest_time=snapshot_at,
+        snapshot_at=snapshot_at,
+        source_note="unit-test fixture",
+    )
+    repository = MetadataRepository(tmp_path)
+    repository.append_index_metadata([item])
+
+    assert repository.get_index_metadata(
+        item.index_code,
+        as_of=datetime(2020, 1, 1, tzinfo=timezone.utc),
+        mode=PITQueryMode.ECONOMIC,
+    ) is None
+    assert repository.get_index_metadata(
+        item.index_code,
+        as_of=datetime(2026, 1, 3, tzinfo=timezone.utc),
+        mode=PITQueryMode.ECONOMIC,
+    ) == item
+    with pytest.raises(ValueError, match="research_data_cutoff must be timezone-aware"):
+        repository.get_index_metadata(
+            item.index_code,
+            as_of=datetime(2026, 1, 3, tzinfo=timezone.utc),
+            mode=PITQueryMode.ECONOMIC,
+            research_data_cutoff=datetime(2026, 1, 3),
+        )
 
 
 def test_unverified_half_day_does_not_assume_normal_session_close() -> None:

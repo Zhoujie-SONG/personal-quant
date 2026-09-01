@@ -7,7 +7,7 @@ from datetime import date, datetime, timezone
 from pathlib import Path
 from typing import Iterable
 
-from etf_quant.domain.enums import Market, PITQueryMode
+from etf_quant.domain.enums import HistoricalDataSemantics, Market, PITQueryMode
 from etf_quant.domain.models.metadata import TradingCalendarObservation
 
 
@@ -95,6 +95,8 @@ def _payload(item: TradingCalendarObservation) -> dict[str, object]:
         "available_time": _dt(item.available_time),
         "ingest_time": _dt(item.ingest_time),
         "source": item.source,
+        "historical_data_semantics": item.historical_data_semantics.value,
+        "availability_policy_id": item.availability_policy_id,
     }
 
 
@@ -109,6 +111,17 @@ def _from_payload(payload: dict[str, object]) -> TradingCalendarObservation:
         available_time=datetime.fromisoformat(str(payload["available_time"])),
         ingest_time=datetime.fromisoformat(str(payload["ingest_time"])),
         source=str(payload["source"]),
+        historical_data_semantics=HistoricalDataSemantics(
+            str(
+                payload.get(
+                    "historical_data_semantics",
+                    HistoricalDataSemantics.HISTORICAL_LATEST.value,
+                )
+            )
+        ),
+        availability_policy_id=str(
+            payload.get("availability_policy_id", "legacy_calendar_retrieval_time_v0")
+        ),
     )
 
 

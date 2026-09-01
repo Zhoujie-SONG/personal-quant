@@ -1,4 +1,4 @@
-# Data contracts — M0/M1A/M1A.1/M1A.2/M1A.2a/M1B
+# Data contracts — M0/M1A/M1A.1/M1A.2/M1A.2a/M1B/M1B.1
 
 ## Canonical authority and dependency direction
 
@@ -125,9 +125,11 @@ A date-looking field does not prove historical vintage. Unproved claims are cons
 
 ETF metadata is separate from `Instrument`. An immutable observation supports nullable `tracking_index`, list/delist dates, trading/settlement cycles, price limit, asset class/timezone, liquidation rule, management fee, fund name/company/type, NAV, IOPV, shares, and AUM. Unknown values stay `None` or `UNKNOWN`; no mapper guesses them.
 
-Every observation stores `effective_from`, `effective_to`, `available_time`, `ingest_time`, `source`, `availability_class`, optional `snapshot_at`, and `provider_payload_hash`. SQLite uses an immutable observation identity; no `symbol PRIMARY KEY + UPDATE` path exists. Known delisted ETFs remain queryable. Complete historical cemetery coverage is explicitly `UNVERIFIED`.
+Every observation stores `effective_from`, `effective_to`, `available_time`, `ingest_time`, `source`, `availability_class`, optional `snapshot_at`, and `provider_payload_hash`. Metadata `source` is dataset-qualified where one provider exposes complementary endpoints (for example `akshare:fund_etf_spot_em` versus `akshare:fund_etf_scale_szse`), so provenance and explicit resolution remain possible. SQLite uses an immutable observation identity; no `symbol PRIMARY KEY + UPDATE` path exists. Known delisted ETFs remain queryable. Complete historical cemetery coverage is explicitly `UNVERIFIED`.
 
-`MetadataRepository.get_metadata` requires `as_of` and `PITQueryMode` and accepts optional `research_data_cutoff`. Economic mode respects effective period, availability, and snapshot time but may use a later-ingested `HISTORICAL_LATEST` observation. System Replay also requires `ingest_time <= as_of`. A research cutoff filters ingestion revisions independently of economic time.
+`MetadataRepository.get_metadata_observations(symbol, as_of, mode, research_data_cutoff=None, source=None)` returns every eligible immutable observation and preserves its source/provenance. `get_metadata` is a single-source convenience query: callers may name `source`; if they omit it and more than one eligible source exists, the repository fails fast instead of silently selecting an entire winning row. M1B.1 deliberately does not merge fields across sources.
+
+Both queries require timezone-aware `as_of` and, when supplied, timezone-aware `research_data_cutoff`. Economic mode respects effective period, availability, and snapshot time but may use a later-ingested `HISTORICAL_LATEST` observation. System Replay also requires `ingest_time <= as_of`. A research cutoff filters ingestion revisions independently of economic time.
 
 For `SNAPSHOT_ONLY` and `FORWARD_COLLECTED_PIT`, `snapshot_at <= as_of` is mandatory. A 2026 snapshot therefore cannot answer a 2020 query. The daily snapshot service relabels observations actually persisted over time as `FORWARD_COLLECTED_PIT`; rerunning the same provider snapshot is idempotent.
 
@@ -135,4 +137,8 @@ For `SNAPSHOT_ONLY` and `FORWARD_COLLECTED_PIT`, `snapshot_at <= as_of` is manda
 
 `IndexMetadata` stores nullable base/launch dates, methodology version and total-return flag plus source, availability classification, effective period, availability, ingestion, snapshot time, and source note. Snapshot-class index observations obey the same no-backfill rule. If launch date is known, dates before launch are `BACKFILLED`; dates on/after launch are `LIVE`. The curated index registry is empty until cited values with `source_note` and timezone-aware `known_at` are supplied.
 
-The canonical trading-calendar repository preserves each observed session's open/close and half-day flag. It supports Economic/System Replay modes and optional `research_data_cutoff`; it does not infer that every session closes at 15:00.
+The canonical trading-calendar repository preserves each observed session's open/close and half-day flag. Longbridge historical calendar observations are `HISTORICAL_LATEST`, not proven historical publication vintages. Under `historical_calendar_session_close_v1`, `available_time` is the observed trading date's timezone-aware `session_close`, while `ingest_time` remains the actual retrieval time. This conservative research policy makes a historical session fact economically usable only after that session closed; it is not a claim about the exchange's original publication time. Economic queries filter on policy availability, while System Replay additionally filters on ingestion. The repository does not infer that every session closes at 15:00.
+
+## Future MetadataResolver contract (M2 boundary)
+
+M1B.1 reserves but does not implement `MetadataResolver` and `ResolvedETFMetadata`. A future resolver must decide independently for each field using explicit source precedence, availability class, observation freshness, and retained field-level provenance. It must not merge by whole-row last-write-wins, must not backfill snapshot-only values, and must expose unresolved conflicts/unknown values rather than guessing. Logical Asset universe construction and vehicle selection remain outside this milestone.

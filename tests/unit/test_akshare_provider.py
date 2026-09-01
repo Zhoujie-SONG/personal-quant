@@ -7,7 +7,7 @@ import pytest
 
 from etf_quant.domain.enums import AdjustType, DataAvailabilityClass
 from etf_quant.providers.akshare.exceptions import AkShareSchemaError
-from etf_quant.providers.akshare.mapper import map_etf_spot_frame
+from etf_quant.providers.akshare.mapper import map_etf_spot_frame, map_szse_scale_frame
 from etf_quant.providers.akshare.provider import AkShareSupplementalProvider
 from etf_quant.providers.dto import RawETFMetadataObservation, RawMarketBar
 
@@ -38,6 +38,22 @@ def history_frame() -> pd.DataFrame:
                 "最低": "3.99",
                 "成交量": "123",
                 "成交额": "49323",
+            }
+        ]
+    )
+
+
+def scale_frame() -> pd.DataFrame:
+    return pd.DataFrame(
+        [
+            {
+                "基金代码": "159915",
+                "基金简称": "fixture scale ETF",
+                "基金类别": "ETF",
+                "上市日期": date(2011, 12, 9),
+                "基金份额": "2000000",
+                "基金管理人": "fixture manager",
+                "净值": "2.00",
             }
         ]
     )
@@ -75,6 +91,15 @@ def test_optional_missing_value_stays_unknown_not_zero() -> None:
     assert result.iopv is None
     assert result.shares == "1000000"
     assert result.availability_class is DataAvailabilityClass.SNAPSHOT_ONLY
+
+
+def test_metadata_endpoints_have_distinct_provenance_sources() -> None:
+    retrieved_at = datetime(2026, 9, 1, 8, tzinfo=timezone.utc)
+    spot = map_etf_spot_frame(spot_frame(), retrieved_at=retrieved_at)[0]
+    scale = map_szse_scale_frame(scale_frame(), retrieved_at=retrieved_at)[0]
+    assert spot.provider == "akshare:fund_etf_spot_em"
+    assert scale.provider == "akshare:fund_etf_scale_szse"
+    assert spot.provider != scale.provider
 
 
 def test_provider_returns_project_dtos_and_never_dataframe() -> None:

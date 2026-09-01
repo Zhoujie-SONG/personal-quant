@@ -1,22 +1,22 @@
 # Data source capabilities — M1B
 
-Observed on 2026-09-01. The machine-readable authority is `configs/data_sources.yaml`; this document is its human-readable operational matrix.
+Observed and revalidated on 2026-09-01. The machine-readable authority is `configs/data_sources.yaml`; this document is its human-readable operational matrix.
 
 ## Real online capability gate
 
 ### Longbridge
 
-The supplied credentials initialized, but the access token was expired (`401003`). No result is promoted to PASS.
+The refreshed credentials initialized successfully. The account reported CN LV1 real-time quote entitlement, and all five read-only capability probes passed.
 
 | Capability | Result | Detail |
 | --- | --- | --- |
-| A-share ETF static | FAIL | token expired |
-| A-share ETF unadjusted daily bars | FAIL | token expired |
-| A-share index unadjusted daily bars | FAIL | token expired |
-| CN trading calendar | FAIL | token expired |
-| Realtime quote | FAIL | token expired |
+| A-share ETF static | PASS | Provider returned and adapter mapped ETF static information |
+| A-share ETF unadjusted daily bars | PASS | Provider returned finalized unadjusted daily bars |
+| A-share index unadjusted daily bars | PASS | Provider returned unadjusted index daily bars |
+| CN trading calendar | PASS | Provider returned CN trading dates |
+| Realtime quote | PASS | Account has CN LV1 and provider returned a quote |
 
-This is neither `NO_CREDENTIAL` nor `NO_PERMISSION`. A refreshed token is required to re-run the matrix.
+The earlier expired-token result is superseded by this gate run. Credentials were supplied only through process environment variables and are not stored in repository files.
 
 ### AkShare
 
@@ -34,7 +34,7 @@ Official contract reference: [AKShare public-fund documentation](https://akshare
 
 | Source/dataset | Fields | Class | Available today | Available at historical T | Formal use |
 | --- | --- | --- | --- | --- | --- |
-| Longbridge historical daily bars | OHLCV, turnover | HISTORICAL_LATEST | Yes after token renewal | Economic history is available, but exact provider vintage at T is unproved | Primary unadjusted market baseline |
+| Longbridge historical daily bars | OHLCV, turnover | HISTORICAL_LATEST | Yes | Economic history is available, but exact provider vintage at T is unproved | Primary unadjusted market baseline |
 | AkShare ETF spot | name, IOPV, latest shares | SNAPSHOT_ONLY | Yes | No, unless actually collected at T | Discovery/current QA only |
 | AkShare SZSE scale snapshot | list date, latest shares, NAV, manager | SNAPSHOT_ONLY | Yes | No historical backfill | Supplemental metadata only |
 | AkShare unadjusted ETF history | OHLCV, turnover | HISTORICAL_LATEST | Yes | Values exist for old dates, but revision vintage at T is unproved | Reconciliation only |
@@ -47,8 +47,8 @@ Tracking index, management fee, trading/settlement rules, price limits, liquidat
 
 - `ETF_CEMETERY_COMPLETENESS = UNVERIFIED`.
 - Known delisted ETFs and future delist observations can be retained, but survivorship bias is not claimed solved.
-- Longbridge half-day capability is `UNVERIFIED` because the real calendar gate failed before a response was obtained.
+- Longbridge trading-calendar access is verified. Half-day completeness remains `UNVERIFIED` because the probe did not establish a representative half-day session response.
 
 ## Reconciliation status
 
-The reconciliation implementation and offline tolerance tests pass. The real Longbridge-vs-AkShare comparison is **BLOCKED / NOT RUN** because the Longbridge token expired and no cached primary bars exist. AkShare is not promoted to a formal market source as a result.
+The reconciliation implementation and offline tolerance tests pass. The refreshed Longbridge side completed, but the real Longbridge-vs-AkShare comparison is **BLOCKED / NO COMPARISON RESULT** because the AkShare upstream Eastmoney history endpoint twice closed the connection (once through the configured proxy and once by direct connection). This is an upstream connectivity state, not a tolerance/data comparison failure. AkShare is not promoted to a formal market source as a result.

@@ -9,7 +9,7 @@ capabilities:
     frequency: daily
     timezone: Asia/Shanghai
     formal_backtest_allowed: true
-    notes: Formal primary market source; unadjusted bars only; real gate currently FAIL token expired.
+    notes: Formal primary market source; unadjusted bars only; real capability gate passed on 2026-09-01.
 
   - provider: akshare
     dataset: fund_etf_spot_em

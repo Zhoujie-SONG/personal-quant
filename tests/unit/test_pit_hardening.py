@@ -6,7 +6,7 @@ from pathlib import Path
 
 import pytest
 
-from etf_quant.domain.enums import AdjustType
+from etf_quant.domain.enums import AdjustType, HistoricalDataSemantics
 from etf_quant.domain.exceptions import DataValidationError
 from etf_quant.domain.policies import DailyBarAvailabilityPolicy
 from etf_quant.providers.dto import RawMarketBar
@@ -40,6 +40,7 @@ class RecordingProvider:
                 retrieved_at=datetime(2024, 1, 2, 8, tzinfo=timezone.utc),
                 provider="test",
                 sdk_version="test",
+                historical_data_semantics=HistoricalDataSemantics.HISTORICAL_LATEST,
             )
         ]
 
@@ -57,6 +58,7 @@ def test_daily_bar_availability_policy_applies_configurable_delay() -> None:
     close = datetime(2024, 1, 2, 15, 0, tzinfo=timezone(timedelta(hours=8)))
     policy = DailyBarAvailabilityPolicy(eod_delay=timedelta(minutes=20))
     assert policy.available_at(close) == close + timedelta(minutes=20)
+    assert policy.policy_id == "daily_bar_eod_v1_20m"
 
 
 def test_formal_canonical_ingestion_rejects_forward_adjustment_before_provider_call() -> None:

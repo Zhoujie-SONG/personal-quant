@@ -1,4 +1,4 @@
-# Provider contracts — M0/M1A/M1A.1
+# Provider contracts — M0/M1A/M1A.1/M1A.2
 
 ## Boundary
 
@@ -11,13 +11,13 @@
 
 No Longbridge SDK class may escape the Longbridge adapter. Callers depend on the protocol, so a future provider can be added without changing ingestion or repositories.
 
-The M1A.1 hardening does not change the `MarketDataProvider` protocol. Longbridge-specific exceptions remain inside `providers/longbridge/`; canonical normalization raises provider-neutral domain exceptions. An automated dependency-boundary test prevents lower layers from importing the Longbridge adapter.
+M1A.1/M1A.2 do not change the `MarketDataProvider` protocol. Longbridge-specific exceptions and SDK types remain inside `providers/longbridge/`; canonical normalization raises provider-neutral domain exceptions. An automated dependency-boundary test prevents lower layers from importing the Longbridge adapter.
 
 ## Provider roles
 
 Longbridge is the **primary market-data provider** for ETF/index OHLCV, quote, static security information, and trading calendar.
 
-AkShare is intentionally deferred to the next milestone. It will be a **supplemental ETF provider** for universe discovery and fund-specific observations such as IOPV, NAV, shares, and AUM. Tushare is not used.
+AkShare is intentionally deferred. If later authorized, its market bars are reconciliation input only; they must not become an implicit second formal market source. The M1A.2 formal canonical market source is explicitly `longbridge`. Tushare is not used.
 
 A provider is not the source of truth. The canonical store is the unified system interface. Future strategies may only read the canonical repository.
 
@@ -38,7 +38,9 @@ All four calls are read-only and may be retried only for transient server, rate-
 
 The SDK documents a sub-month trading-day query limit; the adapter chunks longer date intervals. Historical bar requests always consult/write the raw cache to conserve Longbridge's monthly unique-symbol quota.
 
-Before treating cached daily bars as complete, the adapter obtains the expected CN trading dates through the existing trading-calendar endpoint. `requested_coverage` is audit history only; a date enters `verified_dates` only when it is an expected trading date and the historical-bar response actually contains that date. Missing expected dates remain retryable on the next call.
+Before treating cached daily bars as complete, the adapter obtains expected CN trading dates through the trading-calendar endpoint and computes the configured finalization cutoff for each date. `requested_coverage` is audit history only. A returned date before `session_close + EOD delay` is `provisional`; only a response retrieved at or after the cutoff enters `finalized_dates`. Missing and provisional expected dates remain retryable on the next call. The adapter and canonical normalizer receive the same explicit `DailyBarAvailabilityPolicy` instance.
+
+Longbridge historical OHLCV is labelled `HISTORICAL_LATEST`: it is the provider's latest history as retrieved, not evidence of the exact revision visible at the historical date. `TRUE_HISTORICAL_VINTAGE` may be used only if a provider contract can reproduce timestamped historical revisions. Economic availability, system observation, provider historical latest, and true historical vintage are four separate concepts.
 
 `AdjustType.FORWARD` remains available at the provider boundary. The formal canonical ingestion service accepts only `AdjustType.NONE`; provider capability must not be confused with formal PIT eligibility.
 

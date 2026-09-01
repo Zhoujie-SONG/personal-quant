@@ -4,8 +4,10 @@ import json
 from datetime import date, datetime, timezone
 
 from etf_quant.data.raw.cache import LongbridgeRawBarCache
-from etf_quant.domain.enums import AdjustType
+from etf_quant.domain.enums import AdjustType, HistoricalDataSemantics
+from etf_quant.domain.policies import DailyBarAvailabilityPolicy
 from etf_quant.providers.dto import RawMarketBar
+from etf_quant.utils.time import shanghai_session_times
 
 
 def raw_bar(trade_date: date, *, retrieved_at: datetime | None = None) -> RawMarketBar:
@@ -21,6 +23,7 @@ def raw_bar(trade_date: date, *, retrieved_at: datetime | None = None) -> RawMar
         retrieved_at=retrieved_at or datetime(2024, 2, 1, tzinfo=timezone.utc),
         provider="longbridge",
         sdk_version="test",
+        historical_data_semantics=HistoricalDataSemantics.HISTORICAL_LATEST,
         provider_payload={"close": "3.55"},
     )
 
@@ -31,7 +34,10 @@ def save(
     end_date: date,
     bars: list[RawMarketBar],
     expected: set[date],
+    *,
+    retrieved_at: datetime = datetime(2024, 2, 1, tzinfo=timezone.utc),
 ) -> None:
+    policy = DailyBarAvailabilityPolicy()
     cache.save(
         "510300.SH",
         start_date,
@@ -39,7 +45,11 @@ def save(
         AdjustType.NONE,
         bars,
         expected_trading_dates=expected,
-        retrieved_at=datetime(2024, 2, 1, tzinfo=timezone.utc),
+        finalization_cutoffs={
+            value: policy.available_at(shanghai_session_times(value)[1])
+            for value in expected
+        },
+        retrieved_at=retrieved_at,
         sdk_version="test",
     )
 
@@ -95,7 +105,8 @@ def test_missing_trading_day_remains_incomplete(tmp_path) -> None:
     )
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
     assert manifest["requested_coverage"]
-    assert manifest["verified_dates"] == [tuesday.isoformat()]
+    assert manifest["finalized_dates"] == [tuesday.isoformat()]
+    assert manifest["provisional_dates"] == []
 
 
 def test_unfinalized_current_trading_day_is_requested_again(tmp_path) -> None:
@@ -119,3 +130,34 @@ def test_verified_dates_prevent_repeat_and_increment_incrementally(tmp_path) -> 
     assert [item.close for item in loaded] == ["3.55", "3.55"]
     assert loaded[0].provider_payload == {"close": "3.55"}
 
+
+def test_current_day_bar_before_cutoff_remains_provisional_and_retryable(tmp_path) -> None:
+    cache = LongbridgeRawBarCache(tmp_path)
+    trade_date = date(2024, 1, 4)
+    pre_cutoff = datetime(2024, 1, 4, 7, 3, tzinfo=timezone.utc)
+    save(
+        cache,
+        trade_date,
+        trade_date,
+        [raw_bar(trade_date, retrieved_at=pre_cutoff)],
+        {trade_date},
+        retrieved_at=pre_cutoff,
+    )
+    assert missing(cache, trade_date, trade_date, {trade_date}) == [
+        (trade_date, trade_date)
+    ]
+
+
+def test_current_day_bar_after_cutoff_becomes_finalized(tmp_path) -> None:
+    cache = LongbridgeRawBarCache(tmp_path)
+    trade_date = date(2024, 1, 4)
+    post_cutoff = datetime(2024, 1, 4, 7, 16, tzinfo=timezone.utc)
+    save(
+        cache,
+        trade_date,
+        trade_date,
+        [raw_bar(trade_date, retrieved_at=post_cutoff)],
+        {trade_date},
+        retrieved_at=post_cutoff,
+    )
+    assert missing(cache, trade_date, trade_date, {trade_date}) == []

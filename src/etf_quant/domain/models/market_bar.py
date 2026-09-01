@@ -4,6 +4,7 @@ from dataclasses import dataclass
 from datetime import date, datetime
 from decimal import Decimal
 
+from etf_quant.domain.enums import HistoricalDataSemantics
 from etf_quant.domain.exceptions import DataValidationError
 
 
@@ -26,12 +27,16 @@ class MarketBar:
     available_time: datetime
     ingest_time: datetime
     source: str
+    availability_policy_id: str
+    historical_data_semantics: HistoricalDataSemantics
 
     def __post_init__(self) -> None:
         for field_name in ("data_time", "available_time", "ingest_time"):
             _require_aware(getattr(self, field_name), field_name)
-        if not self.symbol or not self.source:
-            raise DataValidationError("symbol and source are required")
+        if not self.symbol or not self.source or not self.availability_policy_id:
+            raise DataValidationError(
+                "symbol, source, and availability_policy_id are required"
+            )
         if min(self.open, self.high, self.low, self.close) <= 0:
             raise DataValidationError("OHLC prices must be positive")
         if self.low > min(self.open, self.close):

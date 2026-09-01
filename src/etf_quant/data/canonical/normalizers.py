@@ -44,6 +44,8 @@ def normalize_market_bar(
         available_time=availability_policy.available_at(close_time),
         ingest_time=raw.retrieved_at,
         source=raw.provider,
+        availability_policy_id=availability_policy.policy_id,
+        historical_data_semantics=raw.historical_data_semantics,
     )
 
 

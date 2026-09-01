@@ -7,6 +7,7 @@ from zoneinfo import ZoneInfo
 import pytest
 
 from etf_quant.data.canonical.normalizers import normalize_market_bar
+from etf_quant.domain.enums import HistoricalDataSemantics
 from etf_quant.domain.exceptions import DataNormalizationError
 from etf_quant.domain.policies import DailyBarAvailabilityPolicy
 from etf_quant.providers.dto import RawMarketBar
@@ -52,6 +53,8 @@ def test_sdk_bar_maps_to_raw_then_canonical_without_float() -> None:
     assert bar.data_time.hour == 15
     assert bar.available_time == bar.data_time + timedelta(minutes=15)
     assert bar.ingest_time == retrieved_at
+    assert bar.availability_policy_id == "daily_bar_eod_v1_15m"
+    assert bar.historical_data_semantics is HistoricalDataSemantics.HISTORICAL_LATEST
 
 
 @pytest.mark.parametrize(("field", "value"), [("open", ""), ("close", "NaN"), ("turnover", "bad")])
@@ -68,6 +71,7 @@ def test_missing_or_invalid_raw_data_is_rejected(field: str, value: str) -> None
         "retrieved_at": datetime(2024, 1, 2, 16, tzinfo=timezone.utc),
         "provider": "longbridge",
         "sdk_version": "test",
+        "historical_data_semantics": HistoricalDataSemantics.HISTORICAL_LATEST,
     }
     raw_values[field] = value
     with pytest.raises(DataNormalizationError):

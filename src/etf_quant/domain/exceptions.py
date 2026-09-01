@@ -7,3 +7,7 @@ class DataNormalizationError(ValueError):
 
 class DataValidationError(ValueError):
     """A canonical value violates a provider-neutral domain invariant."""
+
+
+class SchemaMigrationRequiredError(DataValidationError):
+    """Persisted canonical data must be migrated before it can be queried."""

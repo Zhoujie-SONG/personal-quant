@@ -1,4 +1,4 @@
-# Data contracts — M0/M1A/M1A.1
+# Data contracts — M0/M1A/M1A.1/M1A.2
 
 ## Canonical authority and dependency direction
 
@@ -8,19 +8,22 @@ Provider responses are observations, not the system source of truth. The only su
 Provider -> Raw DTO -> Normalizer -> Canonical Model -> Repository
 ```
 
-Future strategy and backtest modules may read only the canonical repository. They must not call Longbridge, AkShare, or read provider raw files directly.
+Future strategy and backtest modules may read only the canonical repository. They must not call Longbridge, AkShare, or provider raw files directly. Canonical/domain validation uses provider-neutral `DataNormalizationError` and `DataValidationError`; lower layers must not import `etf_quant.providers.longbridge.*`.
 
-Canonical/domain validation uses provider-neutral `DataNormalizationError` and `DataValidationError`. Code below the provider-neutral boundary (`data`, `domain`, `services`, repositories) must not import `etf_quant.providers.longbridge.*`; an AST-based unit test enforces this rule.
+## Four distinct PIT concepts
 
-## Three timestamps and DailyBarAvailabilityPolicy
+These terms are not interchangeable:
 
-Every canonical `MarketBar` contains:
+- **economic availability**: `available_time`, the earliest instant at which the configured research policy permits use of a value;
+- **system observation**: `ingest_time`, when this system actually retrieved that exact provider revision;
+- **provider historical latest** (`HISTORICAL_LATEST`): history fetched now, containing the provider's current best version of old bars without proof that old vintages are recoverable;
+- **true historical vintage** (`TRUE_HISTORICAL_VINTAGE`): a value tied to and reproducible from the provider revision actually published at the historical observation time.
 
-- `data_time`: the market event time represented by the record. For a normal A-share daily bar this is 15:00 Asia/Shanghai on `trade_date`.
-- `available_time`: the earliest time allowed by the configured `DailyBarAvailabilityPolicy`.
-- `ingest_time`: the actual time this system retrieved/observed this provider revision.
+Economic PIT does not create provider vintage history. Longbridge historical OHLCV is explicitly classified as `HISTORICAL_LATEST` until historical revision-vintage support is proved. Results may therefore be economically aligned by bar availability while still containing later provider corrections.
 
-For daily bars:
+## Timestamps and availability policy
+
+Every canonical `MarketBar` stores:
 
 ```text
 data_time      = session_close
@@ -28,70 +31,68 @@ available_time = session_close + configured EOD delay
 ingest_time    = actual retrieval time
 ```
 
-The default delay is 15 minutes and is read from `daily_bar_availability.eod_delay_minutes` in YAML. This is a conservative **system policy**, not a statement of exchange fact or a guarantee that every provider finalizes at that time. A policy change must be reviewed like any other PIT assumption.
+The default 15-minute delay comes from `daily_bar_availability.eod_delay_minutes` in YAML. This is a conservative system policy, not an exchange fact or provider finalization guarantee. `availability_policy_id` records the rule separately, for example `daily_bar_eod_v1_15m`.
 
-Hard rule: **it is forbidden to generate a signal from T-day close and execute that signal at T-day close.** A signal using the completed T daily bar can trade no earlier than T+1, regardless of the configured intraday delay.
+Hard rule: a signal using T close may execute no earlier than T+1, irrespective of the delay.
 
-## Canonical MarketBar validation
+## Immutable revision schema v3
 
-Prices and turnover are `Decimal`; volume is an integer. All three timestamps are timezone-aware. OHLC must satisfy:
-
-```text
-low <= open <= high
-low <= close <= high
-```
-
-Prices are positive; volume and turnover are non-negative. `source`, `symbol`, and `trade_date` are mandatory. Domain invariant failures raise `DataValidationError`; raw conversion failures raise `DataNormalizationError`.
-
-## Immutable revision schema
-
-Monthly Parquet partitions are revision logs. A later provider correction never overwrites or deletes an earlier observation.
-
-Revision schema version 2 stores:
+Monthly Parquet partitions are append-preserving revision logs. Later corrections never overwrite earlier observations.
 
 | Field | Meaning |
 | --- | --- |
-| `revision_schema_version` | Physical revision schema version (`2`) |
-| `observation_id` | SHA-256 of symbol/date/source/ingest_time/payload_hash |
-| `payload_hash` | SHA-256 of canonical OHLCV/value payload and availability timestamps |
-| `symbol`, `trade_date`, `source` | Economic bar identity |
-| `ingest_time` | `observed_at`: when this revision became known to this system |
-| OHLCV, turnover | Values for this exact revision |
-| `data_time`, `available_time` | Market and policy availability timestamps |
+| `revision_schema_version` | Physical schema version (`3`) |
+| `observation_id` | Identity over symbol/date/source/ingest/value hash/policy/availability |
+| `value_hash` | SHA-256 of provider/canonical bar values and data identity only |
+| `availability_policy_id` | Independently versioned research availability rule |
+| `historical_data_semantics` | `historical_latest` or `true_historical_vintage` |
+| `symbol`, `trade_date`, `source` | Economic bar identity and provenance |
+| `ingest_time` | System observation time (`observed_at`) |
+| OHLCV, turnover, `data_time` | Value for this exact revision |
+| `available_time` | Availability produced by the named policy |
 
-Exact duplicate observations are idempotent by `observation_id`. Different values or a different observation time remain separate and can be recovered with `get_bar_revisions`.
+`value_hash` deliberately excludes `available_time` and `availability_policy_id`. A policy change creates a distinct observation/policy revision but not a false provider price revision.
 
-## PIT query semantics
+## Explicit PIT query modes and source
 
-For a requested `as_of`, a revision is eligible only when both conditions hold:
+`MarketRepository.get_bars` has no hidden PIT default. Callers must provide both `source` and `mode`:
 
-```text
-available_time <= as_of
-ingest_time    <= as_of
+```python
+get_bars(..., source=CanonicalMarketSource.LONGBRIDGE,
+         as_of=as_of, mode=PITQueryMode.ECONOMIC)
 ```
 
-For each `(symbol, trade_date, source)`, the repository then selects the eligible row with the latest `ingest_time` (with `payload_hash` as a deterministic tie-breaker). Consequently, a query between an original observation T1 and a provider correction T2 returns T1; a query after T2 returns the correction.
+- `ECONOMIC`: requires `available_time <= as_of`; intended for historical research, walk-forward, and OOS work. `ingest_time` is not filtered, so historical data downloaded later remains usable. With `HISTORICAL_LATEST`, the newest stored provider revision is selected and is not claimed to be a true historical vintage.
+- `SYSTEM_REPLAY`: requires both `available_time <= as_of` and `ingest_time <= as_of`; intended for live replay, incident reconstruction, and provider revision audit.
+
+For each explicitly requested `(symbol, trade_date, source)`, the latest eligible observation is selected. The formal canonical market source in M1A.2 is `longbridge`. A future reconciliation source cannot leak multiple same-date rows into formal queries because source is mandatory and the formal enum exposes only Longbridge.
+
+## Safe schema migration
+
+Queries and appends inspect every matching partition. Any v1/v2 or mixed v1/v2/v3 set raises `SchemaMigrationRequiredError`; the repository never silently unions uncertain schemas.
+
+Run the explicit one-time migration before querying legacy runtime data:
+
+```text
+python scripts/migrate_market_bar_revisions.py --canonical-root data/canonical
+```
+
+The utility atomically rewrites each legacy partition to v3, recomputes `value_hash`, preserves observations, labels Longbridge history `HISTORICAL_LATEST`, and assigns an honest `legacy_inferred_daily_bar_<seconds>s` policy id derived from stored timestamps. Back up runtime data before operational migration.
 
 ## Adjustment discipline
 
-`AdjustType.FORWARD` remains a provider capability, but the formal PIT canonical ingestion service rejects it. The formal PIT baseline accepts only `AdjustType.NONE`.
+`AdjustType.FORWARD` remains a provider capability, but formal canonical ingestion accepts only `AdjustType.NONE`. Until PIT corporate-action reconstruction exists, history forward-adjusted with today's knowledge is forbidden as formal OOS input.
 
-Until PIT corporate-action reconstruction exists, history forward-adjusted using today's adjustment knowledge must not be used as formal OOS/backtest input. It may only be handled outside the formal canonical path for capability checks or clearly labelled exploration.
+## Raw cache completeness and finalization
 
-## Raw cache completeness
+The raw manifest distinguishes:
 
-Raw DTOs preserve provider strings for price/money fields and include retrieval time, provider, SDK version, and provider payload. Raw records retain distinct retrieval revisions rather than overwriting solely by market timestamp.
+- `requested_coverage`: request audit history;
+- `provisional_dates`: expected trading dates that returned a bar before the configured cutoff;
+- `finalized_dates`: expected trading dates observed at or after `session_close + EOD delay`.
 
-The coverage manifest separates:
-
-- `requested_coverage`: ranges successfully requested, retained only for audit;
-- `verified_dates`: expected trading dates for which a bar was actually returned.
-
-Completeness is evaluated against trading-calendar dates. Weekend/holiday dates are not expected and require no bar. If an expected trading date is absent—including a current trading day whose finalized bar has not yet arrived—it remains missing and is requested again. A successful API response alone never proves a date range complete.
+Only `finalized_dates` satisfy cache completeness. A non-empty current-day response before the cutoff remains provisional and is fetched again. Weekend/holiday dates are not expected. Missing expected trading dates remain retryable. Legacy v2 `verified_dates` are conservatively reclassified as provisional because their cutoff proof was not stored.
 
 ## Historical metadata discipline
 
-A historical PIT fact that is unavailable must remain unknown. In particular, today's AUM, shares, NAV, IOPV, tracking index, list status, or other snapshot **must not be filled backward** into an earlier date.
-
-Instrument metadata keeps nullable list/delist dates so later milestones can retain liquidated/delisted ETFs. Logical Asset to Execution Vehicle mapping is a separate PIT concern and is not implemented in M1A.1.
-
+A historical PIT fact that is unavailable remains unknown. Today's AUM, shares, NAV, IOPV, tracking index, list status, or other snapshot must not be filled backward. Logical Asset to Execution Vehicle mapping remains out of scope.

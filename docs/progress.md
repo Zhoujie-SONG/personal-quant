@@ -35,10 +35,10 @@ Completed:
 - Added an automated lower-layer dependency boundary test; the provider protocol is unchanged.
 - Added YAML-configured `DailyBarAvailabilityPolicy` with a conservative default 15-minute EOD delay.
 - Changed canonical MarketBar storage to immutable revision schema v2 with `observation_id`, `payload_hash`, and `ingest_time`/observed-at identity.
-- PIT queries now filter on both policy availability and actual observation time, then select the latest eligible revision per symbol/date/source.
+- M1A.1 PIT queries filtered on both policy availability and actual observation time; M1A.2 supersedes this with two explicit modes.
 - Preserved complete revision history through `get_bar_revisions` and added T1/T2 correction tests.
 - Blocked forward-adjusted history from the formal PIT canonical ingestion path; formal baseline input is unadjusted only.
-- Split raw cache requested coverage from calendar-verified dates; weekends, missing trading days, and unfinalized current-day retry behavior are tested.
+- Split raw cache requested coverage from calendar-verified dates; M1A.2 supersedes the verification state with provisional/finalized cutoff semantics.
 - All offline tests pass; integration remains excluded by default.
 
 Unverified:
@@ -55,6 +55,21 @@ Technical debt intentionally deferred:
 - Exchange half-day session-close mapping (the A-share normal session is currently encoded as 09:30–15:00).
 - Historical correction refresh scheduling: canonical/raw storage can retain revisions, but verified old dates are not proactively re-polled.
 
+## M1A.2 — PIT semantics finalization
+
+Status: **COMPLETE (offline gate passed) / REAL API UNVERIFIED**
+
+Completed:
+
+- Split canonical reads into explicit `PITQueryMode.ECONOMIC` and `PITQueryMode.SYSTEM_REPLAY`; callers must also specify the canonical source.
+- Defined formal market source as Longbridge and prevented implicit multi-source same-date results.
+- Classified current Longbridge historical OHLCV as `HISTORICAL_LATEST`, distinct from a true historical provider vintage.
+- Upgraded immutable canonical revision storage to schema v3 with policy-independent `value_hash`, separate `availability_policy_id`, and `historical_data_semantics`.
+- Added explicit v1/v2-to-v3 migration tooling and fail-fast mixed-schema detection for both PIT and revision queries.
+- Split raw daily-bar cache state into `provisional_dates` and `finalized_dates`; a current-day non-empty response cannot finalize before the configured safety cutoff.
+- Added regression coverage for 2019 data ingested in 2026, source isolation, policy/value revision separation, mixed-schema migration, and pre/post-cutoff cache behavior.
+- All offline tests pass; integration remains excluded by default.
+
 ## Next milestone recommendation (paused)
 
-M1B is explicitly paused after M1A.1. When authorized later, proceed only after the capability probe and hardening review. AkShare, Vehicle Selector, strategy, backtest, Macro, LLM, GBDT, optimization, and live orders remain out of scope for this milestone.
+M1B is explicitly paused after M1A.2. When authorized later, proceed only after the capability probe and hardening review. AkShare, Vehicle Selector, strategy, backtest, Macro, LLM, GBDT, optimization, and live orders remain out of scope for this milestone.

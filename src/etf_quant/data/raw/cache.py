@@ -2,13 +2,13 @@ from __future__ import annotations
 
 import hashlib
 import json
-from collections.abc import Collection
+from collections.abc import Collection, Mapping
 from dataclasses import asdict
 from datetime import date, datetime
 from pathlib import Path
 from typing import Any
 
-from etf_quant.domain.enums import AdjustType
+from etf_quant.domain.enums import AdjustType, HistoricalDataSemantics
 from etf_quant.providers.dto import RawMarketBar
 from etf_quant.utils.time import shanghai_trade_date
 
@@ -16,7 +16,7 @@ from etf_quant.utils.time import shanghai_trade_date
 class LongbridgeRawBarCache:
     """Monthly raw cache with separate requested and calendar-verified coverage."""
 
-    schema_version = 2
+    schema_version = 3
 
     def __init__(self, root: Path) -> None:
         self.root = root / "longbridge" / "bars"
@@ -59,19 +59,15 @@ class LongbridgeRawBarCache:
             return []
 
         manifest = self._read_manifest(symbol, adjust_type)
-        verified = {
-            date.fromisoformat(value) for value in manifest.get("verified_dates", [])
+        finalized = {
+            date.fromisoformat(value) for value in manifest.get("finalized_dates", [])
         }
-        verified.update(
-            shanghai_trade_date(bar.provider_timestamp)
-            for bar in self.load(symbol, start_date, end_date, adjust_type)
-        )
 
         ranges: list[tuple[date, date]] = []
         active_start: date | None = None
         previous_missing: date | None = None
         for trade_date in expected:
-            if trade_date not in verified:
+            if trade_date not in finalized:
                 if active_start is None:
                     active_start = trade_date
                 previous_missing = trade_date
@@ -92,6 +88,7 @@ class LongbridgeRawBarCache:
         bars: list[RawMarketBar],
         *,
         expected_trading_dates: Collection[date],
+        finalization_cutoffs: Mapping[date, datetime],
         retrieved_at: datetime,
         sdk_version: str,
     ) -> None:
@@ -145,11 +142,23 @@ class LongbridgeRawBarCache:
             if start_date <= trade_date <= end_date
         }
         returned = {shanghai_trade_date(bar.provider_timestamp) for bar in bars}
-        verified = {
-            date.fromisoformat(value) for value in manifest.get("verified_dates", [])
+        finalized = {
+            date.fromisoformat(value) for value in manifest.get("finalized_dates", [])
         }
-        verified.update(expected & returned)
-        manifest["verified_dates"] = [value.isoformat() for value in sorted(verified)]
+        provisional = {
+            date.fromisoformat(value) for value in manifest.get("provisional_dates", [])
+        }
+        for trade_date in expected & returned:
+            cutoff = finalization_cutoffs.get(trade_date)
+            if cutoff is None:
+                raise ValueError(f"missing finalization cutoff for {trade_date}")
+            if retrieved_at >= cutoff:
+                finalized.add(trade_date)
+                provisional.discard(trade_date)
+            elif trade_date not in finalized:
+                provisional.add(trade_date)
+        manifest["finalized_dates"] = [value.isoformat() for value in sorted(finalized)]
+        manifest["provisional_dates"] = [value.isoformat() for value in sorted(provisional)]
         self._atomic_write_json(self._manifest_path(symbol, adjust_type), manifest)
 
     def load(
@@ -186,12 +195,23 @@ class LongbridgeRawBarCache:
     def _read_manifest(self, symbol: str, adjust_type: AdjustType) -> dict[str, Any]:
         path = self._manifest_path(symbol, adjust_type)
         if not path.exists():
-            return {"requested_coverage": [], "verified_dates": []}
+            return {
+                "requested_coverage": [],
+                "finalized_dates": [],
+                "provisional_dates": [],
+            }
         payload = json.loads(path.read_text(encoding="utf-8"))
         version = payload.get("schema_version")
         if version == 1:
             payload["requested_coverage"] = payload.pop("coverage", [])
-            payload["verified_dates"] = []
+            payload["finalized_dates"] = []
+            payload["provisional_dates"] = []
+            return payload
+        if version == 2:
+            # v2 cannot prove that a same-day bar was observed after its cutoff.
+            # Reclassify all old verification as provisional and require re-fetch.
+            payload["provisional_dates"] = payload.pop("verified_dates", [])
+            payload["finalized_dates"] = []
             return payload
         if version != self.schema_version:
             raise ValueError(f"unsupported raw cache schema in {path}")
@@ -246,6 +266,9 @@ class LongbridgeRawBarCache:
             retrieved_at=datetime.fromisoformat(item["retrieved_at"]),
             provider=item["provider"],
             sdk_version=item["sdk_version"],
+            historical_data_semantics=HistoricalDataSemantics(
+                item.get("historical_data_semantics", "historical_latest")
+            ),
             provider_payload=item.get("provider_payload", {}),
         )
 

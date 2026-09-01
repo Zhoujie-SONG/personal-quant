@@ -30,6 +30,20 @@ class AdjustType(StrEnum):
     FORWARD = "forward"
 
 
+class PITQueryMode(StrEnum):
+    ECONOMIC = "economic"
+    SYSTEM_REPLAY = "system_replay"
+
+
+class CanonicalMarketSource(StrEnum):
+    LONGBRIDGE = "longbridge"
+
+
+class HistoricalDataSemantics(StrEnum):
+    HISTORICAL_LATEST = "historical_latest"
+    TRUE_HISTORICAL_VINTAGE = "true_historical_vintage"
+
+
 class Market(StrEnum):
     CN = "CN"
 
@@ -40,4 +54,3 @@ class Sleeve(StrEnum):
     OVERSEAS_EQUITY = "overseas_equity"
     COMMODITY = "commodity"
     DEFENSIVE = "defensive"
-

@@ -9,15 +9,23 @@ from decimal import Decimal
 from pathlib import Path
 from typing import Iterable, Mapping
 
+from etf_quant.domain.enums import (
+    CanonicalMarketSource,
+    HistoricalDataSemantics,
+    PITQueryMode,
+)
+from etf_quant.domain.exceptions import DataValidationError, SchemaMigrationRequiredError
 from etf_quant.domain.models.market_bar import MarketBar
 
-REVISION_SCHEMA_VERSION = 2
+REVISION_SCHEMA_VERSION = 3
+LEGACY_POLICY_PREFIX = "legacy_inferred_daily_bar"
 
 
 @dataclass(frozen=True, slots=True)
 class MarketBarObservation:
     observation_id: str
-    payload_hash: str
+    value_hash: str
+    availability_policy_id: str
     observed_at: datetime
     bar: MarketBar
 
@@ -34,9 +42,11 @@ class MarketRepository(ABC):
         start_date: date,
         end_date: date,
         *,
+        source: CanonicalMarketSource,
         as_of: datetime,
+        mode: PITQueryMode,
     ) -> list[MarketBar]:
-        """Return the latest observation actually known at as_of for each bar."""
+        """Return one explicitly sourced observation under the requested PIT mode."""
 
     @abstractmethod
     def get_bar_revisions(
@@ -67,20 +77,17 @@ class ParquetMarketRepository(MarketRepository):
             path = self.root / f"year={year:04d}" / f"month={month:02d}" / "part-00000.parquet"
             by_observation_id: dict[str, dict[str, object]] = {}
             if path.exists():
+                self._require_current_schema([path])
                 for existing in pq.read_table(path).to_pylist():
-                    row = self._upgrade_row(existing)
-                    by_observation_id[str(row["observation_id"])] = row
+                    by_observation_id[str(existing["observation_id"])] = existing
             for bar in incoming:
                 row = self._to_row(bar)
                 by_observation_id[str(row["observation_id"])] = row
             rows = sorted(
                 by_observation_id.values(),
                 key=lambda row: (
-                    row["trade_date"],
-                    row["symbol"],
-                    row["source"],
-                    row["ingest_time"],
-                    row["payload_hash"],
+                    row["trade_date"], row["symbol"], row["source"],
+                    row["ingest_time"], row["availability_policy_id"], row["value_hash"],
                 ),
             )
             table = pa.Table.from_pylist(rows, schema=self._schema(pa))
@@ -96,32 +103,45 @@ class ParquetMarketRepository(MarketRepository):
         start_date: date,
         end_date: date,
         *,
+        source: CanonicalMarketSource,
         as_of: datetime,
+        mode: PITQueryMode,
     ) -> list[MarketBar]:
         self._validate_query(start_date, end_date, as_of)
-        if not self._has_files():
+        if not isinstance(source, CanonicalMarketSource):
+            raise DataValidationError("source must be an explicit CanonicalMarketSource")
+        if not isinstance(mode, PITQueryMode):
+            raise DataValidationError("mode must be an explicit PITQueryMode")
+        files = self._files()
+        if not files:
             return []
+        self._require_current_schema(files)
+        replay_clause = "AND ingest_time <= ?" if mode is PITQueryMode.SYSTEM_REPLAY else ""
+        parameters: list[object] = [symbol, source.value, start_date, end_date, as_of]
+        if mode is PITQueryMode.SYSTEM_REPLAY:
+            parameters.append(as_of)
         sql = f"""
             WITH eligible AS (
                 SELECT *,
                        row_number() OVER (
                            PARTITION BY symbol, trade_date, source
-                           ORDER BY ingest_time DESC, payload_hash DESC
+                           ORDER BY ingest_time DESC, availability_policy_id DESC,
+                                    value_hash DESC
                        ) AS revision_rank
                 FROM read_parquet('{self._parquet_glob()}', hive_partitioning = false)
-                WHERE symbol = ?
+                WHERE symbol = ? AND source = ?
                   AND trade_date BETWEEN ? AND ?
                   AND available_time <= ?
-                  AND ingest_time <= ?
+                  {replay_clause}
             )
             SELECT symbol, trade_date, open, high, low, close, volume, turnover,
-                   data_time, available_time, ingest_time, source
+                   data_time, available_time, ingest_time, source,
+                   availability_policy_id, historical_data_semantics
             FROM eligible
             WHERE revision_rank = 1
-            ORDER BY trade_date, source
+            ORDER BY trade_date
         """
-        rows = self._fetchall(sql, [symbol, start_date, end_date, as_of, as_of])
-        return [self._bar_from_tuple(row) for row in rows]
+        return [self._bar_from_tuple(row) for row in self._fetchall(sql, parameters)]
 
     def get_bar_revisions(
         self,
@@ -129,29 +149,67 @@ class ParquetMarketRepository(MarketRepository):
         trade_date: date,
         source: str,
     ) -> list[MarketBarObservation]:
-        if not self._has_files():
+        files = self._files()
+        if not files:
             return []
+        self._require_current_schema(files)
         sql = f"""
-            SELECT observation_id, payload_hash,
+            SELECT observation_id, value_hash, availability_policy_id,
                    symbol, trade_date, open, high, low, close, volume, turnover,
-                   data_time, available_time, ingest_time, source
+                   data_time, available_time, ingest_time, source,
+                   availability_policy_id, historical_data_semantics
             FROM read_parquet('{self._parquet_glob()}', hive_partitioning = false)
             WHERE symbol = ? AND trade_date = ? AND source = ?
-            ORDER BY ingest_time, payload_hash
+            ORDER BY ingest_time, availability_policy_id, value_hash
         """
         rows = self._fetchall(sql, [symbol, trade_date, source])
         return [
             MarketBarObservation(
                 observation_id=str(row[0]),
-                payload_hash=str(row[1]),
-                observed_at=_aware_utc(row[12]),
-                bar=self._bar_from_tuple(row[2:]),
+                value_hash=str(row[1]),
+                availability_policy_id=str(row[2]),
+                observed_at=_aware_utc(row[13]),
+                bar=self._bar_from_tuple(row[3:]),
             )
             for row in rows
         ]
 
-    def _has_files(self) -> bool:
-        return any(self.root.glob("year=*/month=*/part-*.parquet"))
+    def schema_versions(self) -> dict[Path, int]:
+        return {path: self._schema_version(path) for path in self._files()}
+
+    def migrate_to_latest_schema(self) -> int:
+        """Explicit one-time migration for legacy v1/v2 partitions."""
+        import pyarrow as pa
+        import pyarrow.parquet as pq
+
+        migrated = 0
+        for path, version in self.schema_versions().items():
+            if version == REVISION_SCHEMA_VERSION:
+                continue
+            if version not in {1, 2}:
+                raise SchemaMigrationRequiredError(
+                    f"unsupported market revision schema v{version} in {path}"
+                )
+            rows = [self._migrate_legacy_row(row) for row in pq.read_table(path).to_pylist()]
+            deduplicated = {str(row["observation_id"]): row for row in rows}
+            table = pa.Table.from_pylist(
+                sorted(
+                    deduplicated.values(),
+                    key=lambda row: (
+                        row["trade_date"], row["symbol"], row["source"],
+                        row["ingest_time"], row["observation_id"],
+                    ),
+                ),
+                schema=self._schema(pa),
+            )
+            temporary = path.with_suffix(".migrating.parquet")
+            pq.write_table(table, temporary, compression="zstd")
+            temporary.replace(path)
+            migrated += 1
+        return migrated
+
+    def _files(self) -> list[Path]:
+        return sorted(self.root.glob("year=*/month=*/part-*.parquet"))
 
     def _parquet_glob(self) -> str:
         value = (self.root / "year=*" / "month=*" / "part-*.parquet").as_posix()
@@ -174,13 +232,36 @@ class ParquetMarketRepository(MarketRepository):
         if end_date < start_date:
             raise ValueError("end_date cannot precede start_date")
 
+    @classmethod
+    def _require_current_schema(cls, files: list[Path]) -> None:
+        versions = {path: cls._schema_version(path) for path in files}
+        stale = {path: version for path, version in versions.items() if version != REVISION_SCHEMA_VERSION}
+        if stale:
+            detail = ", ".join(f"{path}:v{version}" for path, version in stale.items())
+            raise SchemaMigrationRequiredError(
+                "market revision partitions require explicit v3 migration: " + detail
+            )
+
+    @staticmethod
+    def _schema_version(path: Path) -> int:
+        import pyarrow.parquet as pq
+
+        names = set(pq.read_schema(path).names)
+        if {"value_hash", "availability_policy_id", "historical_data_semantics"} <= names:
+            return 3
+        if {"observation_id", "payload_hash"} <= names:
+            return 2
+        return 1
+
     @staticmethod
     def _schema(pa: object) -> object:
         return pa.schema(
             [
                 pa.field("revision_schema_version", pa.int16(), nullable=False),
                 pa.field("observation_id", pa.string(), nullable=False),
-                pa.field("payload_hash", pa.string(), nullable=False),
+                pa.field("value_hash", pa.string(), nullable=False),
+                pa.field("availability_policy_id", pa.string(), nullable=False),
+                pa.field("historical_data_semantics", pa.string(), nullable=False),
                 pa.field("symbol", pa.string(), nullable=False),
                 pa.field("trade_date", pa.date32(), nullable=False),
                 pa.field("open", pa.decimal128(28, 8), nullable=False),
@@ -198,12 +279,13 @@ class ParquetMarketRepository(MarketRepository):
 
     @classmethod
     def _to_row(cls, bar: MarketBar) -> dict[str, object]:
-        payload_hash = market_bar_payload_hash(bar)
-        observation_id = market_bar_observation_id(bar, payload_hash)
+        value_hash = market_bar_value_hash(bar)
         return {
             "revision_schema_version": REVISION_SCHEMA_VERSION,
-            "observation_id": observation_id,
-            "payload_hash": payload_hash,
+            "observation_id": market_bar_observation_id(bar, value_hash),
+            "value_hash": value_hash,
+            "availability_policy_id": bar.availability_policy_id,
+            "historical_data_semantics": bar.historical_data_semantics.value,
             "symbol": bar.symbol,
             "trade_date": bar.trade_date,
             "open": bar.open,
@@ -219,13 +301,14 @@ class ParquetMarketRepository(MarketRepository):
         }
 
     @classmethod
-    def _upgrade_row(cls, row: Mapping[str, object]) -> dict[str, object]:
-        if "observation_id" in row and "payload_hash" in row:
-            return dict(row)
-        return cls._to_row(cls._bar_from_mapping(row))
+    def _migrate_legacy_row(cls, row: Mapping[str, object]) -> dict[str, object]:
+        return cls._to_row(cls._legacy_bar_from_mapping(row))
 
     @staticmethod
-    def _bar_from_mapping(row: Mapping[str, object]) -> MarketBar:
+    def _legacy_bar_from_mapping(row: Mapping[str, object]) -> MarketBar:
+        data_time = _aware_utc(row["data_time"])
+        available_time = _aware_utc(row["available_time"])
+        delay_seconds = max(0, int((available_time - data_time).total_seconds()))
         return MarketBar(
             symbol=str(row["symbol"]),
             trade_date=row["trade_date"],  # type: ignore[arg-type]
@@ -235,10 +318,12 @@ class ParquetMarketRepository(MarketRepository):
             close=Decimal(row["close"]),  # type: ignore[arg-type]
             volume=int(row["volume"]),  # type: ignore[arg-type]
             turnover=Decimal(row["turnover"]),  # type: ignore[arg-type]
-            data_time=_aware_utc(row["data_time"]),
-            available_time=_aware_utc(row["available_time"]),
+            data_time=data_time,
+            available_time=available_time,
             ingest_time=_aware_utc(row["ingest_time"]),
             source=str(row["source"]),
+            availability_policy_id=f"{LEGACY_POLICY_PREFIX}_{delay_seconds}s",
+            historical_data_semantics=HistoricalDataSemantics.HISTORICAL_LATEST,
         )
 
     @staticmethod
@@ -256,10 +341,12 @@ class ParquetMarketRepository(MarketRepository):
             available_time=_aware_utc(row[9]),
             ingest_time=_aware_utc(row[10]),
             source=str(row[11]),
+            availability_policy_id=str(row[12]),
+            historical_data_semantics=HistoricalDataSemantics(str(row[13])),
         )
 
 
-def market_bar_payload_hash(bar: MarketBar) -> str:
+def market_bar_value_hash(bar: MarketBar) -> str:
     payload = {
         "symbol": bar.symbol,
         "trade_date": bar.trade_date.isoformat(),
@@ -271,21 +358,19 @@ def market_bar_payload_hash(bar: MarketBar) -> str:
         "volume": bar.volume,
         "turnover": _canonical_decimal(bar.turnover),
         "data_time": _canonical_datetime(bar.data_time),
-        "available_time": _canonical_datetime(bar.available_time),
     }
     encoded = json.dumps(payload, ensure_ascii=True, separators=(",", ":"), sort_keys=True)
     return hashlib.sha256(encoded.encode("utf-8")).hexdigest()
 
 
-def market_bar_observation_id(bar: MarketBar, payload_hash: str | None = None) -> str:
-    value_hash = payload_hash or market_bar_payload_hash(bar)
+def market_bar_observation_id(bar: MarketBar, value_hash: str | None = None) -> str:
     identity = "|".join(
         (
-            bar.symbol,
-            bar.trade_date.isoformat(),
-            bar.source,
+            bar.symbol, bar.trade_date.isoformat(), bar.source,
             _canonical_datetime(bar.ingest_time),
-            value_hash,
+            value_hash or market_bar_value_hash(bar),
+            bar.availability_policy_id,
+            _canonical_datetime(bar.available_time),
         )
     )
     return hashlib.sha256(identity.encode("utf-8")).hexdigest()

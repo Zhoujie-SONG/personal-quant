@@ -9,6 +9,11 @@ from etf_quant.data.repositories.market_repository import (
     REVISION_SCHEMA_VERSION,
     ParquetMarketRepository,
 )
+from etf_quant.domain.enums import (
+    CanonicalMarketSource,
+    HistoricalDataSemantics,
+    PITQueryMode,
+)
 from etf_quant.domain.models.market_bar import MarketBar
 
 
@@ -26,6 +31,8 @@ def canonical_bar(*, close: str, ingest_hour: int) -> MarketBar:
         available_time=datetime(2024, 1, 2, 7, 15, tzinfo=timezone.utc),
         ingest_time=datetime(2024, 1, 2, ingest_hour, 0, tzinfo=timezone.utc),
         source="longbridge",
+        availability_policy_id="daily_bar_eod_v1_15m",
+        historical_data_semantics=HistoricalDataSemantics.HISTORICAL_LATEST,
     )
 
 
@@ -34,7 +41,9 @@ def query(repository: ParquetMarketRepository, as_of_hour: int) -> list[MarketBa
         "510300.SH",
         date(2024, 1, 1),
         date(2024, 1, 31),
+        source=CanonicalMarketSource.LONGBRIDGE,
         as_of=datetime(2024, 1, 2, as_of_hour, 0, tzinfo=timezone.utc),
+        mode=PITQueryMode.SYSTEM_REPLAY,
     )
 
 
@@ -59,7 +68,7 @@ def test_revision_log_preserves_old_observation_and_pit_selects_latest_known(tmp
         Decimal("4.01000000"),
     ]
     assert len({item.observation_id for item in revisions}) == 2
-    assert len({item.payload_hash for item in revisions}) == 2
+    assert len({item.value_hash for item in revisions}) == 2
 
 
 def test_revision_parquet_schema_contains_identity_fields(tmp_path) -> None:
@@ -70,8 +79,9 @@ def test_revision_parquet_schema_contains_identity_fields(tmp_path) -> None:
     assert {
         "revision_schema_version",
         "observation_id",
-        "payload_hash",
+        "value_hash",
+        "availability_policy_id",
+        "historical_data_semantics",
         "ingest_time",
     }.issubset(table.column_names)
     assert table.column("revision_schema_version").to_pylist() == [REVISION_SCHEMA_VERSION]
-

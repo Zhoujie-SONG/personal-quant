@@ -6,6 +6,7 @@ from zoneinfo import ZoneInfo
 
 import pytest
 
+from etf_quant.domain.enums import HistoricalDataSemantics
 from etf_quant.domain.models.market_bar import MarketBar
 
 
@@ -24,6 +25,8 @@ def make_bar(**overrides: object) -> MarketBar:
         "available_time": datetime(2024, 1, 2, 15, 0, tzinfo=shanghai),
         "ingest_time": datetime(2024, 1, 2, 8, 0, tzinfo=timezone.utc),
         "source": "longbridge",
+        "availability_policy_id": "daily_bar_eod_v1_15m",
+        "historical_data_semantics": HistoricalDataSemantics.HISTORICAL_LATEST,
     }
     values.update(overrides)
     return MarketBar(**values)  # type: ignore[arg-type]
@@ -52,4 +55,3 @@ def test_available_time_cannot_precede_close_time() -> None:
     shanghai = ZoneInfo("Asia/Shanghai")
     with pytest.raises(ValueError, match="available_time"):
         make_bar(available_time=datetime(2024, 1, 2, 14, 59, tzinfo=shanghai))
-

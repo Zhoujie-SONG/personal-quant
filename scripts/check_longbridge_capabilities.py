@@ -10,6 +10,7 @@ from typing import Callable
 from etf_quant.config.settings import Settings
 from etf_quant.data.raw.cache import LongbridgeRawBarCache
 from etf_quant.domain.enums import AdjustType, Market
+from etf_quant.domain.policies import DailyBarAvailabilityPolicy
 from etf_quant.providers.longbridge.client import LongbridgeClient
 from etf_quant.providers.longbridge.exceptions import (
     LongbridgePermissionError,
@@ -63,6 +64,11 @@ def main() -> int:
 
     provider = LongbridgeMarketDataProvider(
         client,
+        availability_policy=DailyBarAvailabilityPolicy(
+            eod_delay=timedelta(
+                minutes=settings.daily_bar_availability.eod_delay_minutes
+            )
+        ),
         raw_cache=LongbridgeRawBarCache(settings.raw_data_dir),
     )
     end = date.today()

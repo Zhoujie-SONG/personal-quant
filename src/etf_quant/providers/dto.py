@@ -4,6 +4,8 @@ from dataclasses import dataclass, field
 from datetime import date, datetime
 from typing import Any, Mapping
 
+from etf_quant.domain.enums import HistoricalDataSemantics
+
 
 @dataclass(frozen=True, slots=True)
 class RawInstrument:
@@ -34,6 +36,7 @@ class RawMarketBar:
     retrieved_at: datetime
     provider: str
     sdk_version: str
+    historical_data_semantics: HistoricalDataSemantics
     provider_payload: Mapping[str, Any] = field(default_factory=dict, repr=False)
 
 
@@ -64,4 +67,3 @@ class RawTradingDay:
     provider: str
     sdk_version: str
     provider_payload: Mapping[str, Any] = field(default_factory=dict, repr=False)
-

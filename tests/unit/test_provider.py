@@ -5,6 +5,7 @@ from types import SimpleNamespace
 
 from etf_quant.data.raw.cache import LongbridgeRawBarCache
 from etf_quant.domain.enums import AdjustType, Market
+from etf_quant.domain.policies import DailyBarAvailabilityPolicy
 from etf_quant.providers.longbridge.client import LongbridgeClient
 from etf_quant.providers.longbridge.market_data import LongbridgeMarketDataProvider
 
@@ -49,6 +50,7 @@ def test_provider_maps_all_endpoints_and_reuses_history_cache(tmp_path) -> None:
     context = FakeContext()
     provider = LongbridgeMarketDataProvider(
         LongbridgeClient(context, max_attempts=1),
+        availability_policy=DailyBarAvailabilityPolicy(),
         raw_cache=LongbridgeRawBarCache(tmp_path),
         sdk_version="test",
     )
@@ -63,4 +65,3 @@ def test_provider_maps_all_endpoints_and_reuses_history_cache(tmp_path) -> None:
     assert context.history_calls == 1
     assert provider.get_trading_days(Market.CN, date(2024, 1, 1), date(2024, 1, 3))[0].trade_date == date(2024, 1, 2)
     assert provider.get_quote(["510300.SH"])[0].last_done == "3.55"
-

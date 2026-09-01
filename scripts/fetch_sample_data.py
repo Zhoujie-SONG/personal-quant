@@ -30,19 +30,21 @@ def main() -> int:
             max_attempts=settings.longbridge.max_attempts,
             retry_base_seconds=settings.longbridge.retry_base_seconds,
         )
+        availability_policy = DailyBarAvailabilityPolicy(
+            eod_delay=timedelta(
+                minutes=settings.daily_bar_availability.eod_delay_minutes
+            )
+        )
         provider = LongbridgeMarketDataProvider(
             client,
+            availability_policy=availability_policy,
             raw_cache=LongbridgeRawBarCache(settings.raw_data_dir),
         )
         repository = ParquetMarketRepository(settings.canonical_data_dir)
         service = MarketDataIngestionService(
             provider,
             repository,
-            DailyBarAvailabilityPolicy(
-                eod_delay=timedelta(
-                    minutes=settings.daily_bar_availability.eod_delay_minutes
-                )
-            ),
+            availability_policy,
         )
         end = date.today()
         count = service.ingest_daily_bars(

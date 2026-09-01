@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import date, datetime
 from typing import Any, Iterable
 
-from etf_quant.domain.enums import Exchange
+from etf_quant.domain.enums import Exchange, HistoricalDataSemantics
 from etf_quant.providers.dto import RawInstrument, RawMarketBar, RawQuote, RawTradingDay
 from etf_quant.utils.time import provider_datetime
 
@@ -88,6 +88,7 @@ def map_market_bar(
         retrieved_at=retrieved_at,
         provider="longbridge",
         sdk_version=sdk_version,
+        historical_data_semantics=HistoricalDataSemantics.HISTORICAL_LATEST,
         provider_payload=_payload(obj, fields),
     )
 

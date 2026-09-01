@@ -7,6 +7,7 @@ from typing import Sequence
 
 from etf_quant.data.raw.cache import LongbridgeRawBarCache
 from etf_quant.domain.enums import AdjustType, Market
+from etf_quant.domain.policies import DailyBarAvailabilityPolicy
 from etf_quant.providers.dto import RawInstrument, RawMarketBar, RawQuote, RawTradingDay
 from etf_quant.providers.longbridge.client import LongbridgeClient
 from etf_quant.providers.longbridge.mapper import (
@@ -16,7 +17,7 @@ from etf_quant.providers.longbridge.mapper import (
     map_trading_days,
     to_longbridge_symbol,
 )
-from etf_quant.utils.time import utc_now
+from etf_quant.utils.time import shanghai_session_times, utc_now
 
 
 class LongbridgeMarketDataProvider:
@@ -24,10 +25,12 @@ class LongbridgeMarketDataProvider:
         self,
         client: LongbridgeClient,
         *,
+        availability_policy: DailyBarAvailabilityPolicy,
         raw_cache: LongbridgeRawBarCache | None = None,
         sdk_version: str | None = None,
     ) -> None:
         self._client = client
+        self._availability_policy = availability_policy
         self._cache = raw_cache or LongbridgeRawBarCache(Path("data/raw"))
         self._sdk_version = sdk_version or importlib.metadata.version("longbridge")
 
@@ -93,6 +96,13 @@ class LongbridgeMarketDataProvider:
                 bars,
                 expected_trading_dates={
                     trade_date
+                    for trade_date in expected_trading_dates
+                    if missing_start <= trade_date <= missing_end
+                },
+                finalization_cutoffs={
+                    trade_date: self._availability_policy.available_at(
+                        shanghai_session_times(trade_date)[1]
+                    )
                     for trade_date in expected_trading_dates
                     if missing_start <= trade_date <= missing_end
                 },

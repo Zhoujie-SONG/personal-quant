@@ -27,11 +27,16 @@ def translate_longbridge_error(exc: Exception, operation: str) -> LongbridgeProv
     lowered = message.lower()
     if any(token in lowered for token in ("301604", "no access", "no permission", "permission limit")):
         return LongbridgePermissionError(message, operation=operation)
-    if any(token in lowered for token in ("unauthorized", "authentication", "invalid token", "app key")):
+    if any(
+        token in lowered
+        for token in (
+            "unauthorized", "authentication", "invalid token", "token invalid",
+            "token expired", "401003", "401004", "app key",
+        )
+    ):
         return LongbridgeAuthenticationError(message, operation=operation)
     retryable = any(
         token in lowered
         for token in ("301606", "301602", "rate limit", "timeout", "temporarily", "connection")
     )
     return LongbridgeProviderError(message, operation=operation, retryable=retryable)
-

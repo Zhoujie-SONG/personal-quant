@@ -1,0 +1,52 @@
+etf_cemetery_completeness: UNVERIFIED
+
+capabilities:
+  - provider: longbridge
+    dataset: historical_daily_ohlcv
+    field: OHLCV_turnover
+    availability_class: historical_latest
+    historical_coverage: provider-dependent; true revision vintages unverified
+    frequency: daily
+    timezone: Asia/Shanghai
+    formal_backtest_allowed: true
+    notes: Formal primary market source; unadjusted bars only; real gate currently FAIL token expired.
+
+  - provider: akshare
+    dataset: fund_etf_spot_em
+    field: symbol_fund_name_iopv_latest_shares
+    availability_class: snapshot_only
+    historical_coverage: current provider snapshot only
+    frequency: intraday snapshot
+    timezone: Asia/Shanghai
+    formal_backtest_allowed: false
+    notes: Supplemental discovery/current observation; never backfill into history; latest-shares unit requires provider monitoring.
+
+  - provider: akshare
+    dataset: fund_etf_hist_em
+    field: OHLCV_turnover
+    availability_class: historical_latest
+    historical_coverage: current latest historical series; revision vintages unverified
+    frequency: daily
+    timezone: Asia/Shanghai
+    formal_backtest_allowed: false
+    notes: Unadjusted reconciliation only; volume converted from lots to shares.
+
+  - provider: akshare
+    dataset: fund_etf_scale_szse
+    field: list_date_latest_shares_nav_fund_company
+    availability_class: snapshot_only
+    historical_coverage: latest SZSE snapshot only
+    frequency: daily snapshot
+    timezone: Asia/Shanghai
+    formal_backtest_allowed: false
+    notes: Supplemental snapshot; endpoint includes non-ETF rows and must be filtered; shares unit follows the exchange endpoint.
+
+  - provider: internal
+    dataset: etf_metadata_snapshots
+    field: fund_name_iopv_nav_shares_aum_tracking_index
+    availability_class: forward_collected_pit
+    historical_coverage: from first successful system snapshot onward
+    frequency: daily
+    timezone: Asia/Shanghai
+    formal_backtest_allowed: true
+    notes: Each field remains nullable; only observations actually collected are queryable.

@@ -13,6 +13,7 @@ class TradingCalendarEntry:
     is_open: bool
     session_open: datetime | None
     session_close: datetime | None
+    is_half_day: bool = False
 
     def __post_init__(self) -> None:
         if self.is_open and (self.session_open is None or self.session_close is None):
@@ -23,4 +24,3 @@ class TradingCalendarEntry:
                 raise ValueError(f"{field_name} must be timezone-aware")
         if self.session_open and self.session_close and self.session_close <= self.session_open:
             raise ValueError("session_close must be after session_open")
-

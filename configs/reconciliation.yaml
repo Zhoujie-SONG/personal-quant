@@ -1,0 +1,7 @@
+# Small operational QA sample; this is not an investment universe.
+symbols:
+  - 510300.SH
+price_abs_tolerance: "0.005"
+volume_relative_tolerance: "0.02"
+turnover_relative_tolerance: "0.02"
+warning_multiplier: "2"

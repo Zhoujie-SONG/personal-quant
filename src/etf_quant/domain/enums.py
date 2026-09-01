@@ -44,6 +44,24 @@ class HistoricalDataSemantics(StrEnum):
     TRUE_HISTORICAL_VINTAGE = "true_historical_vintage"
 
 
+class DataAvailabilityClass(StrEnum):
+    TRUE_HISTORICAL_VINTAGE = "true_historical_vintage"
+    HISTORICAL_LATEST = "historical_latest"
+    SNAPSHOT_ONLY = "snapshot_only"
+    FORWARD_COLLECTED_PIT = "forward_collected_pit"
+
+
+class IndexHistoryStatus(StrEnum):
+    BACKFILLED = "backfilled"
+    LIVE = "live"
+
+
+class ReconciliationStatus(StrEnum):
+    PASS = "PASS"
+    WARNING = "WARNING"
+    FAIL = "FAIL"
+
+
 class Market(StrEnum):
     CN = "CN"
 

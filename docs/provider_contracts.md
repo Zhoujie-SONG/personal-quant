@@ -1,8 +1,8 @@
-# Provider contracts — M0/M1A/M1A.1/M1A.2
+# Provider contracts — M0/M1A/M1A.1/M1A.2/M1B
 
 ## Boundary
 
-`MarketDataProvider` is the only upstream market-data boundary. It returns project-owned Raw DTOs for:
+`MarketDataProvider` is the formal primary market-data boundary. It returns project-owned Raw DTOs for:
 
 - daily bars;
 - quotes;
@@ -17,7 +17,7 @@ M1A.1/M1A.2 do not change the `MarketDataProvider` protocol. Longbridge-specific
 
 Longbridge is the **primary market-data provider** for ETF/index OHLCV, quote, static security information, and trading calendar.
 
-AkShare is intentionally deferred. If later authorized, its market bars are reconciliation input only; they must not become an implicit second formal market source. The M1A.2 formal canonical market source is explicitly `longbridge`. Tushare is not used.
+M1B authorizes AkShare only as a supplemental adapter. Its market bars are reconciliation input and cannot become an implicit second formal market source. The formal canonical market source remains explicitly `longbridge`. Tushare is not used.
 
 A provider is not the source of truth. The canonical store is the unified system interface. Future strategies may only read the canonical repository.
 
@@ -58,4 +58,24 @@ They are read from the environment by the SDK. YAML credentials are rejected. Cl
 
 `scripts/check_longbridge_capabilities.py` checks ETF static info, ETF daily bars, index daily bars, CN trading days, and realtime quote. It does not write canonical storage. Successful historical calls are still raw-cached because the quota discipline applies to every historical fetch.
 
-The matrix uses `PASS`, `FAIL`, and `NO_PERMISSION`; provider errors are printed as concise explanations without a traceback.
+The matrix uses `PASS`, `FAIL`, `NO_PERMISSION`, and `NO_CREDENTIAL`; provider errors are printed as concise explanations without a traceback.
+
+## M1B AkShare supplemental adapter
+
+Longbridge remains the only formal `CanonicalMarketSource`. AkShare is supplemental and its market bars are reconciliation-only. The adapter exposes project DTOs; pandas DataFrames remain inside `providers/akshare/`.
+
+Only three live-verified endpoints are connected:
+
+| AkShare endpoint | M1B use | Availability |
+| --- | --- | --- |
+| `fund_etf_spot_em` | ETF discovery plus current name, IOPV and latest shares | `SNAPSHOT_ONLY` |
+| `fund_etf_scale_szse` | Current SZSE list date, shares, NAV and manager snapshot | `SNAPSHOT_ONLY` |
+| `fund_etf_hist_em(adjust="")` | Unadjusted OHLCV/turnover reconciliation | `HISTORICAL_LATEST`, never formal market input |
+
+The mapper checks named required columns, tolerates only declared optional columns, and raises `AkShareSchemaError` on schema break. It never reads columns by position. Empty, `--`, `---`, `None`, NaN and NaT are missing—not zero. Required invalid numerics raise `AkShareDataError`. AkShare daily volume is explicitly converted from lots to shares (`×100`); turnover remains provider-reported yuan.
+
+Live validation on 2026-09-01 used AkShare 1.18.60 and passed all three adapter endpoints. Network tests carry the `integration` marker and default pytest remains offline.
+
+## M1B Longbridge gate status
+
+The 2026-09-01 real gate had credentials but the access token was expired (`401003`). ETF static, ETF bars, index bars, trading calendar, and realtime quote all recorded `FAIL`. This is an authentication state, not a provider implementation bug or `NO_PERMISSION`. The probe now reports `NO_CREDENTIAL` explicitly when environment variables are absent.

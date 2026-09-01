@@ -83,6 +83,23 @@ Completed:
 - Added full offline provider/cache → ingestion service → Parquet repository regression coverage, including Economic and System Replay queries.
 - Reserved the M3 requirement to freeze `research_data_cutoff` and `dataset_snapshot_id` for every historical research run.
 
+## M1B — AkShare supplemental provider and metadata PIT foundation
+
+Status: **COMPLETE (offline gate passed; AkShare integration passed) / LONGBRIDGE TOKEN EXPIRED**
+
+Completed:
+
+- Added the four-way provider-neutral `DataAvailabilityClass` and machine-readable `configs/data_sources.yaml` registry.
+- Added strict AkShare supplemental adapters for ETF spot/universe, SZSE scale snapshots, and unadjusted daily reconciliation bars; DataFrames never cross the adapter.
+- Added immutable ETF and Index metadata observations with PIT-aware SQLite repositories and optional `research_data_cutoff`.
+- Enforced no historical backfill for snapshot-only fields and added forward-collected PIT snapshot accumulation.
+- Preserved delisted metadata observations while marking cemetery completeness `UNVERIFIED`.
+- Added index `BACKFILLED`/`LIVE` classification and an empty provenance-required curated index registry.
+- Added canonical trading-calendar observation storage with half-day/session preservation.
+- Added idempotent `snapshot_etf_metadata.py` and tolerance-configured `reconcile_market_data.py` scripts.
+- Added offline tests for availability classification, snapshot discipline, revision preservation, Economic/System Replay semantics, DataFrame/schema boundaries, index/calendar behavior, snapshot idempotency, and reconciliation tolerances.
+- Real AkShare integration passed. Real Longbridge reconciliation remains blocked because all gate calls returned token-expired failures.
+
 ## Next milestone recommendation (paused)
 
-M1B is explicitly paused after M1A.2a. When authorized later, proceed only after the capability probe and hardening review. AkShare, Vehicle Selector, strategy, backtest, Macro, LLM, GBDT, optimization, and live orders remain out of scope for this milestone.
+M2 is explicitly paused after M1B. Vehicle Selector, final Logical Asset universe, strategy, backtest, Macro, LLM, GBDT, portfolio construction, optimization, broker integration, and live orders remain out of scope.

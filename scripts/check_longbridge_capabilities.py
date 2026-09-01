@@ -13,6 +13,7 @@ from etf_quant.domain.enums import AdjustType, Market
 from etf_quant.domain.policies import DailyBarAvailabilityPolicy
 from etf_quant.providers.longbridge.client import LongbridgeClient
 from etf_quant.providers.longbridge.exceptions import (
+    LongbridgeAuthenticationError,
     LongbridgePermissionError,
     LongbridgeProviderError,
 )
@@ -24,6 +25,7 @@ class Status(StrEnum):
     PASS = "PASS"
     FAIL = "FAIL"
     NO_PERMISSION = "NO_PERMISSION"
+    NO_CREDENTIAL = "NO_CREDENTIAL"
 
 
 @dataclass(frozen=True, slots=True)
@@ -41,6 +43,14 @@ def check(label: str, operation: Callable[[], object]) -> Result:
         return Result(label, Status.PASS)
     except LongbridgePermissionError as exc:
         return Result(label, Status.NO_PERMISSION, str(exc))
+    except LongbridgeAuthenticationError as exc:
+        status = (
+            Status.NO_CREDENTIAL
+            if "missing required Longbridge environment variables" in str(exc)
+            else Status.FAIL
+        )
+        print(f"Longbridge capability gate: {status.value} ({exc})")
+        return 2
     except LongbridgeProviderError as exc:
         return Result(label, Status.FAIL, str(exc))
     except Exception as exc:

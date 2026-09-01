@@ -1,4 +1,4 @@
-# Data contracts — M0/M1A/M1A.1/M1A.2/M1A.2a
+# Data contracts — M0/M1A/M1A.1/M1A.2/M1A.2a/M1B
 
 ## Canonical authority and dependency direction
 
@@ -109,3 +109,30 @@ Raw `load()` retains both provisional and finalized observations for audit. The 
 ## Historical metadata discipline
 
 A historical PIT fact that is unavailable remains unknown. Today's AUM, shares, NAV, IOPV, tracking index, list status, or other snapshot must not be filled backward. Logical Asset to Execution Vehicle mapping remains out of scope.
+
+## Metadata availability classification
+
+Metadata uses provider-neutral `DataAvailabilityClass`:
+
+- `TRUE_HISTORICAL_VINTAGE`: evidence supports the exact version published at historical time T;
+- `HISTORICAL_LATEST`: a historical series fetched now, without historical revision-vintage proof;
+- `SNAPSHOT_ONLY`: a current observation that is unavailable before its actual `snapshot_at`;
+- `FORWARD_COLLECTED_PIT`: immutable snapshots accumulated by this system from its collection start onward.
+
+A date-looking field does not prove historical vintage. Unproved claims are conservatively downgraded. **AVAILABLE TODAY and AVAILABLE AT HISTORICAL TIME T are different questions.**
+
+## ETF metadata observations
+
+ETF metadata is separate from `Instrument`. An immutable observation supports nullable `tracking_index`, list/delist dates, trading/settlement cycles, price limit, asset class/timezone, liquidation rule, management fee, fund name/company/type, NAV, IOPV, shares, and AUM. Unknown values stay `None` or `UNKNOWN`; no mapper guesses them.
+
+Every observation stores `effective_from`, `effective_to`, `available_time`, `ingest_time`, `source`, `availability_class`, optional `snapshot_at`, and `provider_payload_hash`. SQLite uses an immutable observation identity; no `symbol PRIMARY KEY + UPDATE` path exists. Known delisted ETFs remain queryable. Complete historical cemetery coverage is explicitly `UNVERIFIED`.
+
+`MetadataRepository.get_metadata` requires `as_of` and `PITQueryMode` and accepts optional `research_data_cutoff`. Economic mode respects effective period, availability, and snapshot time but may use a later-ingested `HISTORICAL_LATEST` observation. System Replay also requires `ingest_time <= as_of`. A research cutoff filters ingestion revisions independently of economic time.
+
+For `SNAPSHOT_ONLY` and `FORWARD_COLLECTED_PIT`, `snapshot_at <= as_of` is mandatory. A 2026 snapshot therefore cannot answer a 2020 query. The daily snapshot service relabels observations actually persisted over time as `FORWARD_COLLECTED_PIT`; rerunning the same provider snapshot is idempotent.
+
+## Index and calendar observations
+
+`IndexMetadata` stores nullable base/launch dates, methodology version and total-return flag plus source, availability classification, effective period, availability, ingestion, snapshot time, and source note. Snapshot-class index observations obey the same no-backfill rule. If launch date is known, dates before launch are `BACKFILLED`; dates on/after launch are `LIVE`. The curated index registry is empty until cited values with `source_note` and timezone-aware `known_at` are supplied.
+
+The canonical trading-calendar repository preserves each observed session's open/close and half-day flag. It supports Economic/System Replay modes and optional `research_data_cutoff`; it does not infer that every session closes at 15:00.

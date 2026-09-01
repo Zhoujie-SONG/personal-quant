@@ -41,7 +41,7 @@ class Settings:
     def __post_init__(self) -> None:
         ZoneInfo(self.timezone)
         if self.provider != "longbridge":
-            raise ValueError("M1A only supports the longbridge provider")
+            raise ValueError("formal primary market provider must remain longbridge")
 
     @classmethod
     def from_yaml(cls, path: Path) -> "Settings":

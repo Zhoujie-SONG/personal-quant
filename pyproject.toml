@@ -9,6 +9,7 @@ description = "PIT-first data foundation for an A-share ETF medium/low-frequency
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
+  "akshare>=1.18,<2",
   "duckdb>=1.0,<2",
   "longbridge>=4.0,<5",
   "numpy>=1.26,<3",
@@ -29,6 +30,5 @@ packages = ["src/etf_quant"]
 addopts = "-m 'not integration'"
 testpaths = ["tests"]
 markers = [
-  "integration: calls the real Longbridge API and requires credentials/network",
+  "integration: calls a real external provider and requires network/credentials as applicable",
 ]
-

@@ -62,6 +62,19 @@ class ReconciliationStatus(StrEnum):
     FAIL = "FAIL"
 
 
+class ResolvedFieldStatus(StrEnum):
+    RESOLVED = "RESOLVED"
+    UNKNOWN = "UNKNOWN"
+    STALE = "STALE"
+    CONFLICT = "CONFLICT"
+
+
+class MetadataFreshness(StrEnum):
+    FRESH = "FRESH"
+    EXPIRED = "EXPIRED"
+    NOT_APPLICABLE = "NOT_APPLICABLE"
+
+
 class Market(StrEnum):
     CN = "CN"
 

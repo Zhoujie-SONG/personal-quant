@@ -139,6 +139,38 @@ For `SNAPSHOT_ONLY` and `FORWARD_COLLECTED_PIT`, `snapshot_at <= as_of` is manda
 
 The canonical trading-calendar repository preserves each observed session's open/close and half-day flag. Longbridge historical calendar observations are `HISTORICAL_LATEST`, not proven historical publication vintages. Under `historical_calendar_session_close_v1`, `available_time` is the observed trading date's timezone-aware `session_close`, while `ingest_time` remains the actual retrieval time. This conservative research policy makes a historical session fact economically usable only after that session closed; it is not a claim about the exchange's original publication time. Economic queries filter on policy availability, while System Replay additionally filters on ingestion. The repository does not infer that every session closes at 15:00.
 
-## Future MetadataResolver contract (M2 boundary)
+## M2A field-level MetadataResolver contract
 
-M1B.1 reserves but does not implement `MetadataResolver` and `ResolvedETFMetadata`. A future resolver must decide independently for each field using explicit source precedence, availability class, observation freshness, and retained field-level provenance. It must not merge by whole-row last-write-wins, must not backfill snapshot-only values, and must expose unresolved conflicts/unknown values rather than guessing. Logical Asset universe construction and vehicle selection remain outside this milestone.
+M2A implements `MetadataResolver` for one caller-supplied ETF symbol. It does not know or infer any Logical Asset membership and does not read the frozen Universe v1. Historical Vehicle Registry and Vehicle Selector remain **NOT IMPLEMENTED**.
+
+The resolver delegates all PIT eligibility to `MetadataRepository.get_metadata_observations(...)`; that repository result is its only observation input. It does not duplicate or weaken effective-period, availability, snapshot, System Replay, or `research_data_cutoff` filtering. Resolution then follows this fixed pipeline independently for each metadata field:
+
+1. eligible immutable observations from the repository;
+2. non-null per-source field candidates;
+3. deterministic same-source selection ordered by `effective_from`, `snapshot_at`, `available_time`, `ingest_time`, and `provider_payload_hash`;
+4. field-specific freshness evaluation;
+5. configured source precedence or require-agreement conflict handling;
+6. one `ResolvedField` with field-level provenance and all competing candidate summaries.
+
+Whole-row last-write-wins is impossible in this contract. A newer spot row with null `list_date` cannot erase a valid scale-source `list_date`; an IOPV and a list date may resolve from different observations. Null values are skipped before same-source revision selection. `AssetClass.UNKNOWN` and empty strings are unknown, not inferred defaults. If every eligible source is null or absent, status is `UNKNOWN` and value remains `None`.
+
+`ResolvedFieldStatus` has four explicit values:
+
+- `RESOLVED`: a current non-null value satisfied the field policy;
+- `UNKNOWN`: no eligible non-null field observation exists;
+- `STALE`: non-null observations exist but all exceed the configured freshness limit; the highest-precedence stale value may be retained with `EXPIRED` provenance for audit, but is not treated as resolved;
+- `CONFLICT`: fresh require-agreement candidates disagree, so no winner or value is exposed.
+
+For `PRECEDENCE_WITH_AUDIT`, the first fresh non-null configured source wins and any disagreement remains in `candidate_observations`. A lower source is used only when higher sources have no fresh non-null value, and `resolution_reason` records the fallback. For `REQUIRE_AGREEMENT`, disagreement produces `CONFLICT` without guessing a winner.
+
+Every selected field preserves `source`, `availability_class`, effective period, `available_time`, `ingest_time`, `snapshot_at`, and `provider_payload_hash`. Fallbacks, stale results, and conflicts also preserve per-source candidate summaries. `ResolvedETFMetadata.to_dict()` provides JSON-safe serialization without discarding Decimal/date/enum values or provenance.
+
+The machine-readable policy is versioned as `etf_metadata_field_resolution_v1` in `configs/metadata_resolution.yaml`. The freshness clock is `snapshot_at`, falling back to `available_time` only when no snapshot exists. Initial engineering limits are:
+
+- IOPV: 3,600 seconds;
+- NAV: 259,200 seconds (3 days);
+- shares and AUM: 2,678,400 seconds (31 days);
+- trading/settlement cycle, price limit, liquidation rule, management fee, fund name/company/type: 31,536,000 seconds (365 days);
+- tracking/list/delist identity, asset class, and market timezone: non-expiring in policy v1.
+
+These are versioned data-validity engineering policies, not alpha, ranking, or portfolio parameters. All resolver datetimes must be timezone-aware. Current-snapshot values still cannot answer an earlier `as_of` because repository eligibility is evaluated before resolution.

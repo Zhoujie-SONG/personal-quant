@@ -148,8 +148,29 @@ Completed:
 - Enforced machine-readable freeze invariants and the separation of Logical Assets, research benchmarks, and future execution vehicles.
 - Recorded the full human decision and provenance in `docs/universe_v1_freeze.md`.
 
+## M2A — Field-level ETF MetadataResolver
+
+Status: **COMPLETE (offline gate passed)**
+
+Completed:
+
+- Added versioned, machine-readable per-field source precedence, freshness, and conflict policies in `configs/metadata_resolution.yaml`.
+- Added `ResolvedField`/`ResolvedETFMetadata` domain contracts with `RESOLVED`, `UNKNOWN`, `STALE`, and `CONFLICT` states.
+- Implemented deterministic non-null same-source revision selection without relying on SQLite row order.
+- Implemented per-field cross-source precedence, explicit fallback reasons, require-agreement conflicts, and retained competing observation summaries.
+- Preserved field-level source, availability, effective-period, snapshot, ingestion, and provider-payload provenance through JSON-safe serialization.
+- Reused repository PIT eligibility as the only input gate, including Economic/System Replay, snapshot-time, and research-cutoff semantics.
+- Added offline coverage for complementary field merges, no whole-row overwrite, PIT modes, cutoff, freshness, fallback, conflict, unknown, deterministic revisions, aware datetimes, serialization, and frozen-Universe immutability.
+
+Scope boundary:
+
+- Historical Vehicle Registry: **NOT IMPLEMENTED**
+- Logical Asset to ETF mapping: **NOT IMPLEMENTED**
+- Vehicle Selector and ETF ranking: **NOT IMPLEMENTED**
+- Strategy, backtest, portfolio construction, optimization, and execution: **NOT IMPLEMENTED**
+
 ## Next milestone
 
-M2 — MetadataResolver, Historical Vehicle Registry, and PIT Vehicle Selector.
+M2B — Historical Vehicle Registry.
 
-M2 is the next declared stage but is not implemented by U-FREEZE. Strategy, backtest, Macro, LLM, GBDT, portfolio construction, optimization, broker integration, and live orders remain out of scope.
+M2B is the next declared stage but is not implemented by M2A. Vehicle Selector remains deferred to a later gate. Strategy, backtest, Macro, LLM, GBDT, portfolio construction, optimization, broker integration, and live orders remain out of scope.

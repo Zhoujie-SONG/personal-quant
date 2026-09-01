@@ -1,0 +1,88 @@
+schema_version: 1
+policy_id: etf_metadata_field_resolution_v1
+known_sources:
+  - akshare:fund_etf_spot_em
+  - akshare:fund_etf_scale_szse
+
+same_source_temporal_ordering:
+  - effective_from
+  - snapshot_at
+  - available_time
+  - ingest_time
+  - provider_payload_hash
+
+freshness_clock: SNAPSHOT_AT_OR_AVAILABLE_TIME
+notes: >-
+  M2A engineering resolution policy. Freshness thresholds are data-validity
+  controls, not trading signals or alpha parameters. Null means the field is
+  intentionally non-expiring under this policy version.
+
+fields:
+  tracking_index:
+    source_precedence: [akshare:fund_etf_spot_em, akshare:fund_etf_scale_szse]
+    max_age_seconds: null
+    conflict_policy: REQUIRE_AGREEMENT
+  list_date:
+    source_precedence: [akshare:fund_etf_scale_szse, akshare:fund_etf_spot_em]
+    max_age_seconds: null
+    conflict_policy: REQUIRE_AGREEMENT
+  delist_date:
+    source_precedence: [akshare:fund_etf_scale_szse, akshare:fund_etf_spot_em]
+    max_age_seconds: null
+    conflict_policy: REQUIRE_AGREEMENT
+  trading_cycle:
+    source_precedence: [akshare:fund_etf_scale_szse, akshare:fund_etf_spot_em]
+    max_age_seconds: 31536000
+    conflict_policy: PRECEDENCE_WITH_AUDIT
+  settlement_cycle:
+    source_precedence: [akshare:fund_etf_scale_szse, akshare:fund_etf_spot_em]
+    max_age_seconds: 31536000
+    conflict_policy: PRECEDENCE_WITH_AUDIT
+  price_limit_pct:
+    source_precedence: [akshare:fund_etf_scale_szse, akshare:fund_etf_spot_em]
+    max_age_seconds: 31536000
+    conflict_policy: PRECEDENCE_WITH_AUDIT
+  asset_class:
+    source_precedence: [akshare:fund_etf_scale_szse, akshare:fund_etf_spot_em]
+    max_age_seconds: null
+    conflict_policy: REQUIRE_AGREEMENT
+  market_timezone:
+    source_precedence: [akshare:fund_etf_scale_szse, akshare:fund_etf_spot_em]
+    max_age_seconds: null
+    conflict_policy: REQUIRE_AGREEMENT
+  contract_liquidation_rule:
+    source_precedence: [akshare:fund_etf_scale_szse, akshare:fund_etf_spot_em]
+    max_age_seconds: 31536000
+    conflict_policy: PRECEDENCE_WITH_AUDIT
+  management_fee:
+    source_precedence: [akshare:fund_etf_scale_szse, akshare:fund_etf_spot_em]
+    max_age_seconds: 31536000
+    conflict_policy: PRECEDENCE_WITH_AUDIT
+  fund_name:
+    source_precedence: [akshare:fund_etf_scale_szse, akshare:fund_etf_spot_em]
+    max_age_seconds: 31536000
+    conflict_policy: PRECEDENCE_WITH_AUDIT
+  fund_company:
+    source_precedence: [akshare:fund_etf_scale_szse, akshare:fund_etf_spot_em]
+    max_age_seconds: 31536000
+    conflict_policy: PRECEDENCE_WITH_AUDIT
+  fund_type:
+    source_precedence: [akshare:fund_etf_scale_szse, akshare:fund_etf_spot_em]
+    max_age_seconds: 31536000
+    conflict_policy: PRECEDENCE_WITH_AUDIT
+  nav:
+    source_precedence: [akshare:fund_etf_scale_szse, akshare:fund_etf_spot_em]
+    max_age_seconds: 259200
+    conflict_policy: PRECEDENCE_WITH_AUDIT
+  iopv:
+    source_precedence: [akshare:fund_etf_spot_em, akshare:fund_etf_scale_szse]
+    max_age_seconds: 3600
+    conflict_policy: PRECEDENCE_WITH_AUDIT
+  shares:
+    source_precedence: [akshare:fund_etf_scale_szse, akshare:fund_etf_spot_em]
+    max_age_seconds: 2678400
+    conflict_policy: PRECEDENCE_WITH_AUDIT
+  aum:
+    source_precedence: [akshare:fund_etf_scale_szse, akshare:fund_etf_spot_em]
+    max_age_seconds: 2678400
+    conflict_policy: PRECEDENCE_WITH_AUDIT

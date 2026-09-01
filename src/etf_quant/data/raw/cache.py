@@ -2,8 +2,9 @@ from __future__ import annotations
 
 import hashlib
 import json
+from collections.abc import Collection
 from dataclasses import asdict
-from datetime import date, datetime, timedelta
+from datetime import date, datetime
 from pathlib import Path
 from typing import Any
 
@@ -13,9 +14,9 @@ from etf_quant.utils.time import shanghai_trade_date
 
 
 class LongbridgeRawBarCache:
-    """Filesystem raw cache with monthly record files and range coverage manifests."""
+    """Monthly raw cache with separate requested and calendar-verified coverage."""
 
-    schema_version = 1
+    schema_version = 2
 
     def __init__(self, root: Path) -> None:
         self.root = root / "longbridge" / "bars"
@@ -44,35 +45,42 @@ class LongbridgeRawBarCache:
         start_date: date,
         end_date: date,
         adjust_type: AdjustType,
+        *,
+        expected_trading_dates: Collection[date],
     ) -> list[tuple[date, date]]:
         if end_date < start_date:
             raise ValueError("end_date cannot precede start_date")
-        manifest = self._read_manifest(symbol, adjust_type)
-        covered: set[date] = set()
-        for item in manifest.get("coverage", []):
-            begin = date.fromisoformat(item["start_date"])
-            end = date.fromisoformat(item["end_date"])
-            cursor = max(begin, start_date)
-            stop = min(end, end_date)
-            while cursor <= stop:
-                covered.add(cursor)
-                cursor += timedelta(days=1)
-
-        missing = [
-            start_date + timedelta(days=offset)
-            for offset in range((end_date - start_date).days + 1)
-            if start_date + timedelta(days=offset) not in covered
-        ]
-        if not missing:
+        expected = sorted(
+            trade_date
+            for trade_date in set(expected_trading_dates)
+            if start_date <= trade_date <= end_date
+        )
+        if not expected:
             return []
+
+        manifest = self._read_manifest(symbol, adjust_type)
+        verified = {
+            date.fromisoformat(value) for value in manifest.get("verified_dates", [])
+        }
+        verified.update(
+            shanghai_trade_date(bar.provider_timestamp)
+            for bar in self.load(symbol, start_date, end_date, adjust_type)
+        )
+
         ranges: list[tuple[date, date]] = []
-        range_start = previous = missing[0]
-        for current in missing[1:]:
-            if current != previous + timedelta(days=1):
-                ranges.append((range_start, previous))
-                range_start = current
-            previous = current
-        ranges.append((range_start, previous))
+        active_start: date | None = None
+        previous_missing: date | None = None
+        for trade_date in expected:
+            if trade_date not in verified:
+                if active_start is None:
+                    active_start = trade_date
+                previous_missing = trade_date
+            elif active_start is not None and previous_missing is not None:
+                ranges.append((active_start, previous_missing))
+                active_start = None
+                previous_missing = None
+        if active_start is not None and previous_missing is not None:
+            ranges.append((active_start, previous_missing))
         return ranges
 
     def save(
@@ -83,6 +91,7 @@ class LongbridgeRawBarCache:
         adjust_type: AdjustType,
         bars: list[RawMarketBar],
         *,
+        expected_trading_dates: Collection[date],
         retrieved_at: datetime,
         sdk_version: str,
     ) -> None:
@@ -95,13 +104,14 @@ class LongbridgeRawBarCache:
         for (year, month), incoming in grouped.items():
             path = directory / f"year={year:04d}" / f"month={month:02d}.json"
             existing = self._read_records(path)
-            by_identity = {
-                (item["symbol"], item["provider_timestamp"]): item for item in existing
-            }
+            by_identity = {self._record_identity(item): item for item in existing}
             for bar in incoming:
                 item = self._serialize_bar(bar)
-                by_identity[(item["symbol"], item["provider_timestamp"])] = item
-            records = sorted(by_identity.values(), key=lambda item: item["provider_timestamp"])
+                by_identity[self._record_identity(item)] = item
+            records = sorted(
+                by_identity.values(),
+                key=lambda item: (item["provider_timestamp"], item["retrieved_at"]),
+            )
             self._atomic_write_json(
                 path,
                 {
@@ -118,8 +128,8 @@ class LongbridgeRawBarCache:
         manifest["symbol"] = symbol
         manifest["adjust_type"] = adjust_type.value
         manifest["sdk_version"] = sdk_version
-        coverage = list(manifest.get("coverage", []))
-        coverage.append(
+        requested = list(manifest.get("requested_coverage", []))
+        requested.append(
             {
                 "start_date": start_date.isoformat(),
                 "end_date": end_date.isoformat(),
@@ -127,7 +137,19 @@ class LongbridgeRawBarCache:
                 "request_key": self.request_key(symbol, start_date, end_date, adjust_type),
             }
         )
-        manifest["coverage"] = coverage
+        manifest["requested_coverage"] = requested
+
+        expected = {
+            trade_date
+            for trade_date in expected_trading_dates
+            if start_date <= trade_date <= end_date
+        }
+        returned = {shanghai_trade_date(bar.provider_timestamp) for bar in bars}
+        verified = {
+            date.fromisoformat(value) for value in manifest.get("verified_dates", [])
+        }
+        verified.update(expected & returned)
+        manifest["verified_dates"] = [value.isoformat() for value in sorted(verified)]
         self._atomic_write_json(self._manifest_path(symbol, adjust_type), manifest)
 
     def load(
@@ -147,8 +169,12 @@ class LongbridgeRawBarCache:
                 trade_date = shanghai_trade_date(bar.provider_timestamp)
                 if start_date <= trade_date <= end_date:
                     result.append(bar)
-            cursor = date(cursor.year + (cursor.month == 12), 1 if cursor.month == 12 else cursor.month + 1, 1)
-        return sorted(result, key=lambda item: item.provider_timestamp)
+            cursor = date(
+                cursor.year + (cursor.month == 12),
+                1 if cursor.month == 12 else cursor.month + 1,
+                1,
+            )
+        return sorted(result, key=lambda item: (item.provider_timestamp, item.retrieved_at))
 
     def _directory(self, symbol: str, adjust_type: AdjustType) -> Path:
         safe_symbol = symbol.strip().upper().replace("/", "_").replace("\\", "_")
@@ -160,9 +186,14 @@ class LongbridgeRawBarCache:
     def _read_manifest(self, symbol: str, adjust_type: AdjustType) -> dict[str, Any]:
         path = self._manifest_path(symbol, adjust_type)
         if not path.exists():
-            return {"coverage": []}
+            return {"requested_coverage": [], "verified_dates": []}
         payload = json.loads(path.read_text(encoding="utf-8"))
-        if payload.get("schema_version") != self.schema_version:
+        version = payload.get("schema_version")
+        if version == 1:
+            payload["requested_coverage"] = payload.pop("coverage", [])
+            payload["verified_dates"] = []
+            return payload
+        if version != self.schema_version:
             raise ValueError(f"unsupported raw cache schema in {path}")
         return payload
 
@@ -178,7 +209,28 @@ class LongbridgeRawBarCache:
         payload = asdict(bar)
         payload["provider_timestamp"] = bar.provider_timestamp.isoformat()
         payload["retrieved_at"] = bar.retrieved_at.isoformat()
+        payload["payload_hash"] = LongbridgeRawBarCache._payload_hash(payload)
         return payload
+
+    @staticmethod
+    def _record_identity(item: dict[str, Any]) -> tuple[str, str, str, str]:
+        payload_hash = str(item.get("payload_hash") or LongbridgeRawBarCache._payload_hash(item))
+        return (
+            str(item["symbol"]),
+            str(item["provider_timestamp"]),
+            str(item["retrieved_at"]),
+            payload_hash,
+        )
+
+    @staticmethod
+    def _payload_hash(item: dict[str, Any]) -> str:
+        value_fields = {
+            key: item[key]
+            for key in ("symbol", "open", "high", "low", "close", "volume", "turnover", "provider_timestamp")
+            if key in item
+        }
+        canonical = json.dumps(value_fields, ensure_ascii=True, separators=(",", ":"), sort_keys=True)
+        return hashlib.sha256(canonical.encode("utf-8")).hexdigest()
 
     @staticmethod
     def _deserialize_bar(item: dict[str, Any]) -> RawMarketBar:

@@ -9,6 +9,15 @@ import yaml
 
 
 @dataclass(frozen=True, slots=True)
+class DailyBarAvailabilitySettings:
+    eod_delay_minutes: int = 15
+
+    def __post_init__(self) -> None:
+        if self.eod_delay_minutes < 0:
+            raise ValueError("eod_delay_minutes cannot be negative")
+
+
+@dataclass(frozen=True, slots=True)
 class LongbridgeSettings:
     max_attempts: int = 3
     retry_base_seconds: float = 0.5
@@ -26,6 +35,7 @@ class Settings:
     provider: str = "longbridge"
     raw_data_dir: Path = Path("data/raw")
     canonical_data_dir: Path = Path("data/canonical")
+    daily_bar_availability: DailyBarAvailabilitySettings = DailyBarAvailabilitySettings()
     longbridge: LongbridgeSettings = LongbridgeSettings()
 
     def __post_init__(self) -> None:
@@ -45,11 +55,17 @@ class Settings:
         longbridge_payload = payload.get("longbridge", {})
         if not isinstance(longbridge_payload, Mapping):
             raise ValueError("longbridge settings must be a mapping")
+        availability_payload = payload.get("daily_bar_availability", {})
+        if not isinstance(availability_payload, Mapping):
+            raise ValueError("daily_bar_availability settings must be a mapping")
         return cls(
             timezone=str(payload.get("timezone", "Asia/Shanghai")),
             provider=str(payload.get("provider", "longbridge")),
             raw_data_dir=Path(str(payload.get("raw_data_dir", "data/raw"))),
             canonical_data_dir=Path(str(payload.get("canonical_data_dir", "data/canonical"))),
+            daily_bar_availability=DailyBarAvailabilitySettings(
+                eod_delay_minutes=int(availability_payload.get("eod_delay_minutes", 15)),
+            ),
             longbridge=LongbridgeSettings(
                 max_attempts=int(longbridge_payload.get("max_attempts", 3)),
                 retry_base_seconds=float(longbridge_payload.get("retry_base_seconds", 0.5)),

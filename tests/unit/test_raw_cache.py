@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from datetime import date, datetime, timezone
 
 from etf_quant.data.raw.cache import LongbridgeRawBarCache
@@ -7,7 +8,7 @@ from etf_quant.domain.enums import AdjustType
 from etf_quant.providers.dto import RawMarketBar
 
 
-def raw_bar(day: int) -> RawMarketBar:
+def raw_bar(trade_date: date, *, retrieved_at: datetime | None = None) -> RawMarketBar:
     return RawMarketBar(
         symbol="510300.SH",
         open="3.5",
@@ -16,11 +17,45 @@ def raw_bar(day: int) -> RawMarketBar:
         close="3.55",
         volume=100,
         turnover="355",
-        provider_timestamp=datetime(2024, 1, day, tzinfo=timezone.utc),
-        retrieved_at=datetime(2024, 2, 1, tzinfo=timezone.utc),
+        provider_timestamp=datetime.combine(trade_date, datetime.min.time(), tzinfo=timezone.utc),
+        retrieved_at=retrieved_at or datetime(2024, 2, 1, tzinfo=timezone.utc),
         provider="longbridge",
         sdk_version="test",
         provider_payload={"close": "3.55"},
+    )
+
+
+def save(
+    cache: LongbridgeRawBarCache,
+    start_date: date,
+    end_date: date,
+    bars: list[RawMarketBar],
+    expected: set[date],
+) -> None:
+    cache.save(
+        "510300.SH",
+        start_date,
+        end_date,
+        AdjustType.NONE,
+        bars,
+        expected_trading_dates=expected,
+        retrieved_at=datetime(2024, 2, 1, tzinfo=timezone.utc),
+        sdk_version="test",
+    )
+
+
+def missing(
+    cache: LongbridgeRawBarCache,
+    start_date: date,
+    end_date: date,
+    expected: set[date],
+) -> list[tuple[date, date]]:
+    return cache.missing_ranges(
+        "510300.SH",
+        start_date,
+        end_date,
+        AdjustType.NONE,
+        expected_trading_dates=expected,
     )
 
 
@@ -38,27 +73,49 @@ def test_raw_cache_request_key_is_stable_and_input_sensitive() -> None:
     assert first != changed
 
 
-def test_raw_cache_prevents_repeat_and_supports_incremental_ranges(tmp_path) -> None:
+def test_weekend_without_bars_is_complete_when_expected_days_exist(tmp_path) -> None:
     cache = LongbridgeRawBarCache(tmp_path)
-    retrieved_at = datetime(2024, 2, 1, tzinfo=timezone.utc)
-    cache.save(
-        "510300.SH",
-        date(2024, 1, 1),
-        date(2024, 1, 10),
-        AdjustType.NONE,
-        [raw_bar(2), raw_bar(3)],
-        retrieved_at=retrieved_at,
-        sdk_version="test",
+    friday = date(2024, 1, 5)
+    monday = date(2024, 1, 8)
+    expected = {friday, monday}
+    save(cache, friday, monday, [raw_bar(friday), raw_bar(monday)], expected)
+    assert missing(cache, friday, monday, expected) == []
+
+
+def test_missing_trading_day_remains_incomplete(tmp_path) -> None:
+    cache = LongbridgeRawBarCache(tmp_path)
+    tuesday = date(2024, 1, 2)
+    wednesday = date(2024, 1, 3)
+    expected = {tuesday, wednesday}
+    save(cache, tuesday, wednesday, [raw_bar(tuesday)], expected)
+    assert missing(cache, tuesday, wednesday, expected) == [(wednesday, wednesday)]
+
+    manifest_path = (
+        tmp_path / "longbridge" / "bars" / "510300.SH" / "none" / "manifest.json"
     )
-    assert cache.missing_ranges(
-        "510300.SH", date(2024, 1, 1), date(2024, 1, 10), AdjustType.NONE
-    ) == []
-    assert cache.missing_ranges(
-        "510300.SH", date(2024, 1, 1), date(2024, 1, 15), AdjustType.NONE
-    ) == [(date(2024, 1, 11), date(2024, 1, 15))]
-    loaded = cache.load(
-        "510300.SH", date(2024, 1, 1), date(2024, 1, 10), AdjustType.NONE
-    )
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    assert manifest["requested_coverage"]
+    assert manifest["verified_dates"] == [tuesday.isoformat()]
+
+
+def test_unfinalized_current_trading_day_is_requested_again(tmp_path) -> None:
+    cache = LongbridgeRawBarCache(tmp_path)
+    current_trade_date = date(2024, 1, 4)
+    save(cache, current_trade_date, current_trade_date, [], {current_trade_date})
+    assert missing(
+        cache, current_trade_date, current_trade_date, {current_trade_date}
+    ) == [(current_trade_date, current_trade_date)]
+
+
+def test_verified_dates_prevent_repeat_and_increment_incrementally(tmp_path) -> None:
+    cache = LongbridgeRawBarCache(tmp_path)
+    first = date(2024, 1, 2)
+    second = date(2024, 1, 3)
+    third = date(2024, 1, 4)
+    save(cache, first, second, [raw_bar(first), raw_bar(second)], {first, second})
+    assert missing(cache, first, second, {first, second}) == []
+    assert missing(cache, first, third, {first, second, third}) == [(third, third)]
+    loaded = cache.load("510300.SH", first, second, AdjustType.NONE)
     assert [item.close for item in loaded] == ["3.55", "3.55"]
     assert loaded[0].provider_payload == {"close": "3.55"}
 

@@ -2,7 +2,9 @@ timezone: Asia/Shanghai
 provider: longbridge
 raw_data_dir: data/raw
 canonical_data_dir: data/canonical
+daily_bar_availability:
+  # Conservative system policy, not an exchange-published fact.
+  eod_delay_minutes: 15
 longbridge:
   max_attempts: 3
   retry_base_seconds: 0.5
-

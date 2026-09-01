@@ -1,14 +1,15 @@
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from types import SimpleNamespace
 from zoneinfo import ZoneInfo
 
 import pytest
 
 from etf_quant.data.canonical.normalizers import normalize_market_bar
+from etf_quant.domain.exceptions import DataNormalizationError
+from etf_quant.domain.policies import DailyBarAvailabilityPolicy
 from etf_quant.providers.dto import RawMarketBar
-from etf_quant.providers.longbridge.exceptions import LongbridgeDataError
 from etf_quant.providers.longbridge.mapper import map_market_bar, to_longbridge_symbol
 
 
@@ -44,11 +45,12 @@ def test_sdk_bar_maps_to_raw_then_canonical_without_float() -> None:
         retrieved_at=retrieved_at,
         sdk_version="test",
     )
-    bar = normalize_market_bar(raw)
+    policy = DailyBarAvailabilityPolicy(eod_delay=timedelta(minutes=15))
+    bar = normalize_market_bar(raw, policy)
     assert str(bar.open) == "3.5001"
     assert str(bar.turnover) == "438320.1234"
     assert bar.data_time.hour == 15
-    assert bar.available_time == bar.data_time
+    assert bar.available_time == bar.data_time + timedelta(minutes=15)
     assert bar.ingest_time == retrieved_at
 
 
@@ -68,6 +70,8 @@ def test_missing_or_invalid_raw_data_is_rejected(field: str, value: str) -> None
         "sdk_version": "test",
     }
     raw_values[field] = value
-    with pytest.raises(LongbridgeDataError):
-        normalize_market_bar(RawMarketBar(**raw_values))  # type: ignore[arg-type]
-
+    with pytest.raises(DataNormalizationError):
+        normalize_market_bar(
+            RawMarketBar(**raw_values),  # type: ignore[arg-type]
+            DailyBarAvailabilityPolicy(),
+        )

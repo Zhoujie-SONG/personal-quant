@@ -54,8 +54,16 @@ class LongbridgeMarketDataProvider:
         normalized = to_longbridge_symbol(symbol)
         if end_date < start_date:
             raise ValueError("end_date cannot precede start_date")
+        expected_trading_dates = {
+            item.trade_date
+            for item in self.get_trading_days(Market.CN, start_date, end_date)
+        }
         for missing_start, missing_end in self._cache.missing_ranges(
-            normalized, start_date, end_date, adjust_type
+            normalized,
+            start_date,
+            end_date,
+            adjust_type,
+            expected_trading_dates=expected_trading_dates,
         ):
             retrieved_at = utc_now()
             response = self._client.query(
@@ -83,6 +91,11 @@ class LongbridgeMarketDataProvider:
                 missing_end,
                 adjust_type,
                 bars,
+                expected_trading_dates={
+                    trade_date
+                    for trade_date in expected_trading_dates
+                    if missing_start <= trade_date <= missing_end
+                },
                 retrieved_at=retrieved_at,
                 sdk_version=self._sdk_version,
             )
@@ -150,4 +163,3 @@ class LongbridgeMarketDataProvider:
         if market is not Market.CN:
             raise ValueError(f"unsupported market: {market}")
         return LongbridgeMarket.CN
-

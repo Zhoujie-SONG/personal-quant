@@ -34,3 +34,13 @@ def test_example_settings_load_without_credentials() -> None:
     settings = Settings.from_yaml(__import__("pathlib").Path("configs/settings.example.yaml"))
     assert settings.provider == "longbridge"
     assert settings.longbridge.max_attempts == 3
+    assert settings.daily_bar_availability.eod_delay_minutes == 15
+
+
+def test_availability_delay_loads_from_yaml(tmp_path) -> None:
+    path = tmp_path / "settings.yaml"
+    path.write_text(
+        "daily_bar_availability:\n  eod_delay_minutes: 25\n",
+        encoding="utf-8",
+    )
+    assert Settings.from_yaml(path).daily_bar_availability.eod_delay_minutes == 25

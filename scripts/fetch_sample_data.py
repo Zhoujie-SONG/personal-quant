@@ -8,6 +8,7 @@ from etf_quant.config.settings import Settings
 from etf_quant.data.raw.cache import LongbridgeRawBarCache
 from etf_quant.data.repositories.market_repository import ParquetMarketRepository
 from etf_quant.domain.enums import AdjustType
+from etf_quant.domain.policies import DailyBarAvailabilityPolicy
 from etf_quant.providers.longbridge.client import LongbridgeClient
 from etf_quant.providers.longbridge.exceptions import LongbridgeProviderError
 from etf_quant.providers.longbridge.market_data import LongbridgeMarketDataProvider
@@ -34,7 +35,15 @@ def main() -> int:
             raw_cache=LongbridgeRawBarCache(settings.raw_data_dir),
         )
         repository = ParquetMarketRepository(settings.canonical_data_dir)
-        service = MarketDataIngestionService(provider, repository)
+        service = MarketDataIngestionService(
+            provider,
+            repository,
+            DailyBarAvailabilityPolicy(
+                eod_delay=timedelta(
+                    minutes=settings.daily_bar_availability.eod_delay_minutes
+                )
+            ),
+        )
         end = date.today()
         count = service.ingest_daily_bars(
             args.symbol,
@@ -51,4 +60,3 @@ def main() -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
-

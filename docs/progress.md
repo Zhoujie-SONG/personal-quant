@@ -169,8 +169,48 @@ Scope boundary:
 - Vehicle Selector and ETF ranking: **NOT IMPLEMENTED**
 - Strategy, backtest, portfolio construction, optimization, and execution: **NOT IMPLEMENTED**
 
+## M2A.1 — Same-source metadata revision tie semantics
+
+Status: **COMPLETE (offline gate passed)**
+
+Completed:
+
+- Removed provider payload hash from semantic latest-revision chronology.
+- Made equal-time, conflicting same-source field values fail fast while retaining
+  hash only as a deterministic representative for already-equal values.
+- Advanced metadata resolution policy semantics to
+  `etf_metadata_field_resolution_v1_1` without changing freshness windows.
+
+## M2B.0 — Historical ETF vehicle candidate discovery and evidence pack
+
+Status: **COMPLETE / CANDIDATE_NOT_APPROVED / PARTIAL_CURATED**
+
+Completed:
+
+- Added `configs/historical_vehicle_candidates.yaml`, bound to frozen Universe v1
+  and its file hash, with 17 evidence records across all 14 active non-cash
+  Logical Assets.
+- Classified 14 records as exact-tracking candidates, 2 as economic proxy
+  candidates, and 1 as a rejected semantic mismatch; all remain `UNREVIEWED`.
+- Kept CASH as `CASH_BALANCE` with no ETF, HSTECH deferred, and OIL inactive with
+  no vehicle discovery or equity proxy.
+- Separated listing dates from mapping-effective periods and retained a contract
+  for adjacent historical tracking-index periods and delisted observations.
+- Added official claim-level provenance plus current-snapshot semantics that cannot
+  imply historical-universe or cemetery completeness.
+- Added an offline fail-fast validator, regression tests, machine-readable coverage,
+  and the technical evidence report under `reports/vehicle_candidate_m2b0/`.
+
+Scope boundary:
+
+- Approved Historical Vehicle Registry: **NOT IMPLEMENTED**
+- Vehicle Selector, ranking, and liquidity screening: **NOT IMPLEMENTED**
+- Strategy, backtest, portfolio, Macro, LLM, broker, and execution: **NOT IMPLEMENTED**
+
 ## Next milestone
 
-M2B — Historical Vehicle Registry.
+M2B.1 — manual historical-cemetery and effective-period evidence review.
 
-M2B is the next declared stage but is not implemented by M2A. Vehicle Selector remains deferred to a later gate. Strategy, backtest, Macro, LLM, GBDT, portfolio construction, optimization, broker integration, and live orders remain out of scope.
+M2B.0 has not approved or frozen a Historical Vehicle Registry. Vehicle Selector
+remains deferred to a later gate. Strategy, backtest, Macro, LLM, GBDT, portfolio
+construction, optimization, broker integration, and live orders remain out of scope.

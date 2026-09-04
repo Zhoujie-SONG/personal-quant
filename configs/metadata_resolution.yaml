@@ -1,5 +1,5 @@
 schema_version: 1
-policy_id: etf_metadata_field_resolution_v1
+policy_id: etf_metadata_field_resolution_v1_1
 known_sources:
   - akshare:fund_etf_spot_em
   - akshare:fund_etf_scale_szse
@@ -9,7 +9,8 @@ same_source_temporal_ordering:
   - snapshot_at
   - available_time
   - ingest_time
-  - provider_payload_hash
+
+same_source_identity_tiebreaker: provider_payload_hash
 
 freshness_clock: SNAPSHOT_AT_OR_AVAILABLE_TIME
 notes: >-

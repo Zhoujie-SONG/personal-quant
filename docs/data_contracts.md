@@ -147,7 +147,7 @@ The resolver delegates all PIT eligibility to `MetadataRepository.get_metadata_o
 
 1. eligible immutable observations from the repository;
 2. non-null per-source field candidates;
-3. deterministic same-source selection ordered by `effective_from`, `snapshot_at`, `available_time`, `ingest_time`, and `provider_payload_hash`;
+3. deterministic same-source selection using the semantic temporal key `effective_from`, `snapshot_at`, `available_time`, and `ingest_time`;
 4. field-specific freshness evaluation;
 5. configured source precedence or require-agreement conflict handling;
 6. one `ResolvedField` with field-level provenance and all competing candidate summaries.
@@ -165,7 +165,7 @@ For `PRECEDENCE_WITH_AUDIT`, the first fresh non-null configured source wins and
 
 Every selected field preserves `source`, `availability_class`, effective period, `available_time`, `ingest_time`, `snapshot_at`, and `provider_payload_hash`. Fallbacks, stale results, and conflicts also preserve per-source candidate summaries. `ResolvedETFMetadata.to_dict()` provides JSON-safe serialization without discarding Decimal/date/enum values or provenance.
 
-The machine-readable policy is versioned as `etf_metadata_field_resolution_v1` in `configs/metadata_resolution.yaml`. The freshness clock is `snapshot_at`, falling back to `available_time` only when no snapshot exists. Initial engineering limits are:
+The machine-readable policy is versioned as `etf_metadata_field_resolution_v1_1` in `configs/metadata_resolution.yaml`. `provider_payload_hash` is an identity tiebreaker, not chronology: it may select a deterministic representative only after every observation sharing the latest semantic temporal key has been proven to carry the same field value. If those latest values disagree, resolution fails fast with `DataValidationError`; lexical hash order never chooses a semantic winner. The freshness clock is `snapshot_at`, falling back to `available_time` only when no snapshot exists. Initial engineering limits are:
 
 - IOPV: 3,600 seconds;
 - NAV: 259,200 seconds (3 days);

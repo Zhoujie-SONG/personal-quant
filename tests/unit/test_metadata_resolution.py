@@ -12,6 +12,8 @@ from etf_quant.config.metadata_resolution import (
     ETF_METADATA_FIELDS,
     MetadataConflictPolicy,
     MetadataResolutionPolicy,
+    SAME_SOURCE_IDENTITY_TIEBREAKER,
+    SAME_SOURCE_TEMPORAL_ORDERING,
 )
 from etf_quant.data.repositories.metadata_repository import MetadataRepository
 from etf_quant.domain.enums import (
@@ -92,7 +94,10 @@ def test_policy_is_versioned_and_covers_every_metadata_field() -> None:
     loaded = policy()
 
     assert loaded.schema_version == 1
-    assert loaded.policy_id == "etf_metadata_field_resolution_v1"
+    assert loaded.policy_id == "etf_metadata_field_resolution_v1_1"
+    assert loaded.same_source_temporal_ordering == SAME_SOURCE_TEMPORAL_ORDERING
+    assert "provider_payload_hash" not in loaded.same_source_temporal_ordering
+    assert loaded.same_source_identity_tiebreaker == SAME_SOURCE_IDENTITY_TIEBREAKER
     assert set(loaded.fields) == set(ETF_METADATA_FIELDS)
     assert loaded.fields["tracking_index"].conflict_policy is MetadataConflictPolicy.REQUIRE_AGREEMENT
     assert loaded.fields["iopv"].max_age_seconds == 3600
@@ -355,7 +360,7 @@ def test_all_null_values_remain_unknown(tmp_path) -> None:
     assert field.source is None
 
 
-def test_same_source_revisions_use_deterministic_temporal_and_hash_order(tmp_path) -> None:
+def test_same_semantic_time_and_value_allows_deterministic_hash_representative(tmp_path) -> None:
     timestamp = datetime(2026, 9, 1, 8, tzinfo=timezone.utc)
     earlier_hash = observation(
         source=SPOT,
@@ -363,7 +368,7 @@ def test_same_source_revisions_use_deterministic_temporal_and_hash_order(tmp_pat
         payload_hash="aaa",
         iopv=Decimal("4.00"),
     )
-    later_hash = replace(earlier_hash, provider_payload_hash="zzz", iopv=Decimal("4.01"))
+    later_hash = replace(earlier_hash, provider_payload_hash="zzz")
 
     field = resolver(tmp_path, [later_hash, earlier_hash]).resolve(
         SYMBOL,
@@ -371,7 +376,8 @@ def test_same_source_revisions_use_deterministic_temporal_and_hash_order(tmp_pat
         mode=PITQueryMode.ECONOMIC,
     ).iopv
 
-    assert field.value == Decimal("4.01")
+    assert field.status is ResolvedFieldStatus.RESOLVED
+    assert field.value == Decimal("4.00")
     assert field.provider_payload_hash == "zzz"
     assert len(field.candidate_observations) == 1
 
@@ -387,12 +393,87 @@ def test_same_source_exact_ordering_tie_with_different_values_fails_fast(tmp_pat
     conflicting = replace(first, iopv=Decimal("4.01"))
     service = resolver(tmp_path, [first, conflicting])
 
-    with pytest.raises(DataValidationError, match="share every configured ordering key"):
+    with pytest.raises(DataValidationError, match="latest semantic temporal key but disagree"):
         service.resolve(
             SYMBOL,
             as_of=timestamp + timedelta(minutes=30),
             mode=PITQueryMode.ECONOMIC,
         )
+
+
+def test_genuinely_later_ingest_time_wins_same_source_revision(tmp_path) -> None:
+    timestamp = datetime(2026, 9, 1, 8, tzinfo=timezone.utc)
+    earlier = observation(
+        source=SPOT,
+        observed_at=timestamp,
+        payload_hash="zzz-earlier",
+        iopv=Decimal("4.00"),
+    )
+    later = replace(
+        earlier,
+        ingest_time=timestamp + timedelta(minutes=5),
+        provider_payload_hash="aaa-later",
+        iopv=Decimal("4.01"),
+    )
+
+    field = resolver(tmp_path, [later, earlier]).resolve(
+        SYMBOL,
+        as_of=timestamp + timedelta(minutes=30),
+        mode=PITQueryMode.SYSTEM_REPLAY,
+    ).iopv
+
+    assert field.value == Decimal("4.01")
+    assert field.provider_payload_hash == "aaa-later"
+
+
+def test_genuinely_later_snapshot_time_wins_same_source_revision(tmp_path) -> None:
+    timestamp = datetime(2026, 9, 1, 8, tzinfo=timezone.utc)
+    earlier = observation(
+        source=SPOT,
+        observed_at=timestamp,
+        payload_hash="zzz-earlier",
+        iopv=Decimal("4.00"),
+    )
+    later = replace(
+        earlier,
+        snapshot_at=timestamp + timedelta(minutes=5),
+        provider_payload_hash="aaa-later",
+        iopv=Decimal("4.01"),
+    )
+
+    field = resolver(tmp_path, [earlier, later]).resolve(
+        SYMBOL,
+        as_of=timestamp + timedelta(minutes=30),
+        mode=PITQueryMode.ECONOMIC,
+    ).iopv
+
+    assert field.value == Decimal("4.01")
+    assert field.provider_payload_hash == "aaa-later"
+
+
+def test_hash_lexical_order_cannot_override_semantically_later_observation(tmp_path) -> None:
+    timestamp = datetime(2026, 9, 1, 8, tzinfo=timezone.utc)
+    lexically_larger_but_earlier = observation(
+        source=SPOT,
+        observed_at=timestamp,
+        payload_hash="zzz-earlier",
+        iopv=Decimal("4.00"),
+    )
+    semantically_later = replace(
+        lexically_larger_but_earlier,
+        available_time=timestamp + timedelta(minutes=5),
+        provider_payload_hash="aaa-later",
+        iopv=Decimal("4.01"),
+    )
+
+    field = resolver(tmp_path, [lexically_larger_but_earlier, semantically_later]).resolve(
+        SYMBOL,
+        as_of=timestamp + timedelta(minutes=30),
+        mode=PITQueryMode.ECONOMIC,
+    ).iopv
+
+    assert field.value == Decimal("4.01")
+    assert field.provider_payload_hash == "aaa-later"
 
 
 def test_naive_as_of_and_cutoff_fail_fast(tmp_path) -> None:

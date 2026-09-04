@@ -33,8 +33,9 @@ SAME_SOURCE_TEMPORAL_ORDERING = (
     "snapshot_at",
     "available_time",
     "ingest_time",
-    "provider_payload_hash",
 )
+
+SAME_SOURCE_IDENTITY_TIEBREAKER = "provider_payload_hash"
 
 
 class MetadataConflictPolicy(StrEnum):
@@ -56,6 +57,7 @@ class MetadataResolutionPolicy:
     policy_id: str
     known_sources: tuple[str, ...]
     same_source_temporal_ordering: tuple[str, ...]
+    same_source_identity_tiebreaker: str
     freshness_clock: str
     fields: Mapping[str, FieldResolutionPolicy]
 
@@ -105,6 +107,9 @@ class MetadataResolutionPolicy:
                 payload.get("same_source_temporal_ordering"),
                 "same_source_temporal_ordering",
             ),
+            same_source_identity_tiebreaker=str(
+                payload.get("same_source_identity_tiebreaker", "")
+            ),
             freshness_clock=str(payload.get("freshness_clock", "")),
             fields=policies,
         )
@@ -120,6 +125,8 @@ class MetadataResolutionPolicy:
             raise ValueError(f"metadata field policy mismatch; missing={sorted(missing)} extra={sorted(extra)}")
         if self.same_source_temporal_ordering != SAME_SOURCE_TEMPORAL_ORDERING:
             raise ValueError("same-source temporal ordering must match the M2A deterministic contract")
+        if self.same_source_identity_tiebreaker != SAME_SOURCE_IDENTITY_TIEBREAKER:
+            raise ValueError("same-source identity tiebreaker must be provider_payload_hash")
         if self.freshness_clock != "SNAPSHOT_AT_OR_AVAILABLE_TIME":
             raise ValueError("unsupported freshness clock")
         if len(set(self.known_sources)) != len(self.known_sources):

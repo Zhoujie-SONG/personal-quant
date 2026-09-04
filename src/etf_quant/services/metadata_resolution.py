@@ -203,14 +203,13 @@ class MetadataResolver:
         )
 
 
-def _same_source_order(item: ETFMetadataObservation) -> tuple[date, datetime, datetime, datetime, str]:
+def _same_source_order(item: ETFMetadataObservation) -> tuple[date, datetime, datetime, datetime]:
     minimum = datetime.min.replace(tzinfo=UTC)
     return (
         item.effective_from or date.min,
         item.snapshot_at or minimum,
         item.available_time,
         item.ingest_time,
-        item.provider_payload_hash,
     )
 
 
@@ -223,9 +222,10 @@ def _latest_same_source(
     values = {_comparable_value(getattr(item, field_name)) for item in latest}
     if len(values) > 1:
         raise DataValidationError(
-            f"ambiguous same-source {field_name} revisions share every configured ordering key"
+            f"ambiguous same-source {field_name} revisions share the latest semantic "
+            "temporal key but disagree in value"
         )
-    return latest[0]
+    return max(latest, key=lambda item: item.provider_payload_hash)
 
 
 def _freshness(

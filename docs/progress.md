@@ -207,10 +207,41 @@ Scope boundary:
 - Vehicle Selector, ranking, and liquidity screening: **NOT IMPLEMENTED**
 - Strategy, backtest, portfolio, Macro, LLM, broker, and execution: **NOT IMPLEMENTED**
 
+## M2B.0.1 — Vehicle candidate breadth and targeted cemetery audit
+
+Status: **COMPLETE / CANDIDATE_NOT_APPROVED / PARTIAL_CURATED**
+
+Completed:
+
+- Expanded the candidate evidence pack from 17 representative records to 108
+  evidence-bearing dispositions across all 14 active non-cash Logical Assets.
+- Retained 107 current candidates without size, turnover, trading-cost, premium,
+  performance, or ranking filters; all remain `UNREVIEWED`.
+- Split semantic mapping into `EXACT_BENCHMARK` (69),
+  `EXACT_LOGICAL_EXPOSURE` (27), economic proxy (5), rejected mismatch (7),
+  and unresolved (0) states.
+- Added the candidate-only canonical index identity registry with 15 identities
+  and 20 officially evidenced provider/exchange code representations, including
+  000300/399300 and Au99.99/Au9999.
+- Distinguished price, full-price, net-total-return, currency/fair-value-adjusted,
+  spot-price, and Shanghai-Gold benchmark variants without changing Universe v1.
+- Preserved 510880 and 512170 as unapproved proxies and 517520 as a rejected
+  spot-gold mismatch.
+- Completed a targeted, non-exhaustive official cemetery audit and retained
+  terminated 560890.SH with the end-exclusive 2024-09-20 to 2026-04-01 mapping.
+- Added machine-readable breadth/termination coverage, expanded evidence report,
+  and fail-fast offline tests for alias, variant, semantic-class, retention, and
+  cemetery-completeness contracts.
+
+Scope boundary:
+
+- Approved Historical Vehicle Registry: **NOT IMPLEMENTED**
+- Vehicle Selector, ranking, and operational screening: **NOT IMPLEMENTED**
+- Strategy, backtest, portfolio, Macro, LLM, broker, and execution: **NOT IMPLEMENTED**
+
 ## Next milestone
 
-M2B.1 — manual historical-cemetery and effective-period evidence review.
-
-M2B.0 has not approved or frozen a Historical Vehicle Registry. Vehicle Selector
-remains deferred to a later gate. Strategy, backtest, Macro, LLM, GBDT, portfolio
-construction, optimization, broker integration, and live orders remain out of scope.
+M2B.1 remains gated and has not started. M2B.0/M2B.0.1 have not approved or
+frozen a Historical Vehicle Registry. Vehicle Selector remains deferred to a
+later gate. Strategy, backtest, Macro, LLM, GBDT, portfolio construction,
+optimization, broker integration, and live orders remain out of scope.

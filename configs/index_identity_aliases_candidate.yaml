@@ -1,0 +1,312 @@
+schema_name: candidate_index_identity_aliases
+schema_version: "1.0"
+status: CANDIDATE_VERIFIED_IDENTITY
+purpose: >-
+  Candidate-stage canonical index identity only. This file neither changes the
+  frozen research benchmark registry nor approves an ETF vehicle.
+
+identities:
+  - canonical_index_id: CSI_300
+    canonical_name: 沪深300指数
+    logical_asset_id: CN_LARGE
+    frozen_benchmark: true
+    frozen_return_variant: PRICE_INDEX
+    aliases:
+      - provider: CSINDEX
+        code: "000300"
+        alias_kind: PRIMARY_OFFICIAL_CODE
+        evidence:
+          - source_type: SSE_OFFICIAL_INDEX_NOTICE
+            source_url: https://www.sse.com.cn/market/sseindex/diclosure/c/c_20150911_3984891.shtml
+            retrieved_at: 2026-09-04T17:20:00+08:00
+            claim: SSE identifies 000300 as the Shanghai quote code of the CSI 300 index.
+            official: true
+            evidence_scopes: [INDEX_IDENTITY]
+      - provider: SZSE
+        code: "399300"
+        alias_kind: EXCHANGE_QUOTE_ALIAS
+        evidence:
+          - source_type: SSE_OFFICIAL_INDEX_NOTICE
+            source_url: https://www.sse.com.cn/market/sseindex/diclosure/c/c_20150911_3984891.shtml
+            retrieved_at: 2026-09-04T17:20:00+08:00
+            claim: SSE explicitly identifies 399300 as the Shenzhen quote code for the same CSI 300 index as 000300.
+            official: true
+            evidence_scopes: [INDEX_IDENTITY]
+
+  - canonical_index_id: CSI_1000
+    canonical_name: 中证1000指数
+    logical_asset_id: CN_SMALL
+    frozen_benchmark: true
+    frozen_return_variant: PRICE_INDEX
+    aliases:
+      - provider: CSINDEX
+        code: "000852"
+        alias_kind: PRIMARY_OFFICIAL_CODE
+        evidence:
+          - source_type: CSINDEX_OFFICIAL_FACTSHEET
+            source_url: https://oss-ch.csindex.com.cn/static/html/csindex/public/uploads/indices/detail/files/zh_CN/000852factsheet.pdf
+            retrieved_at: 2026-09-04T17:20:00+08:00
+            claim: CSI official factsheet identifies 000852 as the CSI 1000 price index.
+            official: true
+            evidence_scopes: [INDEX_IDENTITY]
+
+  - canonical_index_id: CHINEXT
+    canonical_name: 创业板指数
+    logical_asset_id: CN_GROWTH
+    frozen_benchmark: true
+    frozen_return_variant: PRICE_INDEX
+    aliases:
+      - provider: SZSE
+        code: "399006"
+        alias_kind: PRIMARY_OFFICIAL_CODE
+        evidence:
+          - source_type: SZSE_OFFICIAL_INDEX_REFERENCE
+            source_url: https://www.szse.cn/www/investor/institute/rules/t20230828_603016.html
+            retrieved_at: 2026-09-04T17:20:00+08:00
+            claim: SZSE official reference identifies 399006 as the ChiNext Index.
+            official: true
+            evidence_scopes: [INDEX_IDENTITY]
+
+  - canonical_index_id: CSI_DIVIDEND
+    canonical_name: 中证红利指数
+    logical_asset_id: CN_DIVIDEND
+    frozen_benchmark: true
+    frozen_return_variant: PRICE_INDEX
+    aliases:
+      - provider: CSINDEX
+        code: "000922"
+        alias_kind: PRIMARY_OFFICIAL_CODE
+        evidence:
+          - source_type: CSINDEX_OFFICIAL_METHODOLOGY
+            source_url: https://oss-ch.csindex.com.cn/static/html/csindex/public/uploads/indices/detail/files/zh_CN/20231208175433-000922_Index_Methodology_cn.pdf
+            retrieved_at: 2026-09-04T17:20:00+08:00
+            claim: CSI methodology identifies 000922 as CSI Dividend.
+            official: true
+            evidence_scopes: [INDEX_IDENTITY]
+
+  - canonical_index_id: CSI_ALL_SHARE_SEMI
+    canonical_name: 中证全指半导体产品与设备指数
+    logical_asset_id: SEMI
+    frozen_benchmark: true
+    frozen_return_variant: PRICE_INDEX
+    aliases:
+      - provider: CSINDEX
+        code: H30184
+        alias_kind: PRIMARY_OFFICIAL_CODE
+        evidence:
+          - source_type: CSINDEX_OFFICIAL_FACTSHEET
+            source_url: https://oss-ch.csindex.com.cn/static/html/csindex/public/uploads/indices/detail/files/zh_CN/H30184factsheet.pdf
+            retrieved_at: 2026-09-04T17:20:00+08:00
+            claim: CSI official factsheet identifies H30184 as the all-share semiconductor products and equipment index.
+            official: true
+            evidence_scopes: [INDEX_IDENTITY]
+
+  - canonical_index_id: CSI_ALL_SHARE_HEALTHCARE
+    canonical_name: 中证全指医药卫生指数
+    logical_asset_id: HEALTHCARE
+    frozen_benchmark: true
+    frozen_return_variant: PRICE_INDEX
+    aliases:
+      - provider: CSINDEX
+        code: "000991"
+        alias_kind: PRIMARY_OFFICIAL_CODE
+        evidence:
+          - source_type: CSINDEX_OFFICIAL_FACTSHEET
+            source_url: https://oss-ch.csindex.com.cn/static/html/csindex/public/uploads/indices/detail/files/zh_CN/000991factsheet.pdf
+            retrieved_at: 2026-09-04T17:20:00+08:00
+            claim: CSI official factsheet identifies 000991 as CSI All Share Health Care.
+            official: true
+            evidence_scopes: [INDEX_IDENTITY]
+
+  - canonical_index_id: CSI_CONSUMER_STAPLES
+    canonical_name: 中证主要消费指数
+    logical_asset_id: CONSUMER
+    frozen_benchmark: true
+    frozen_return_variant: PRICE_INDEX
+    aliases:
+      - provider: CSINDEX
+        code: "000932"
+        alias_kind: PRIMARY_OFFICIAL_CODE
+        evidence:
+          - source_type: CSINDEX_OFFICIAL_FACTSHEET
+            source_url: https://oss-ch.csindex.com.cn/static/html/csindex/public/uploads/indices/detail/files/zh_CN/000932factsheet.pdf
+            retrieved_at: 2026-09-04T17:20:00+08:00
+            claim: CSI official factsheet identifies 000932 as CSI Consumer Staples.
+            official: true
+            evidence_scopes: [INDEX_IDENTITY]
+
+  - canonical_index_id: CSI_COAL
+    canonical_name: 中证煤炭指数
+    logical_asset_id: COAL
+    frozen_benchmark: true
+    frozen_return_variant: PRICE_INDEX
+    aliases:
+      - provider: CSINDEX
+        code: "399998"
+        alias_kind: PRIMARY_OFFICIAL_CODE
+        evidence:
+          - source_type: CSINDEX_OFFICIAL_METHODOLOGY
+            source_url: https://oss-ch.csindex.com.cn/static/html/csindex/public/uploads/indices/detail/files/zh_CN/20231208175431-399998_Index_Methodology_cn.pdf
+            retrieved_at: 2026-09-04T17:20:00+08:00
+            claim: CSI methodology identifies 399998 as CSI Coal.
+            official: true
+            evidence_scopes: [INDEX_IDENTITY]
+
+  - canonical_index_id: SP_500
+    canonical_name: S&P 500
+    logical_asset_id: SP500
+    frozen_benchmark: true
+    frozen_return_variant: PRICE_INDEX
+    aliases:
+      - provider: LONG_BRIDGE
+        code: .SPX.US
+        alias_kind: PROVIDER_SYMBOL_ALIAS
+        evidence:
+          - source_type: LONGBRIDGE_OFFICIAL_SYMBOL_RULES
+            source_url: https://open.longbridge.com/docs/quote/quote-overview
+            retrieved_at: 2026-09-04T17:20:00+08:00
+            claim: Longbridge official quote documentation defines provider-qualified security symbols used by the frozen benchmark reference.
+            official: true
+            evidence_scopes: [INDEX_IDENTITY]
+      - provider: S_AND_P_DJI
+        code: SPX
+        alias_kind: PRIMARY_OFFICIAL_CODE
+        evidence:
+          - source_type: SPDJI_OFFICIAL_INDEX_PAGE
+            source_url: https://www.spglobal.com/spdji/en/indices/equity/sp-500/
+            retrieved_at: 2026-09-04T17:20:00+08:00
+            claim: S&P Dow Jones Indices identifies SPX as the S&P 500 index family used by the ETF tracking objectives.
+            official: true
+            evidence_scopes: [INDEX_IDENTITY]
+
+  - canonical_index_id: NASDAQ_100
+    canonical_name: Nasdaq-100
+    logical_asset_id: NASDAQ100
+    frozen_benchmark: true
+    frozen_return_variant: PRICE_INDEX
+    aliases:
+      - provider: LONG_BRIDGE
+        code: .NDX.US
+        alias_kind: PROVIDER_SYMBOL_ALIAS
+        evidence:
+          - source_type: LONGBRIDGE_OFFICIAL_SYMBOL_RULES
+            source_url: https://open.longbridge.com/docs/quote/quote-overview
+            retrieved_at: 2026-09-04T17:20:00+08:00
+            claim: Longbridge official quote documentation defines provider-qualified security symbols used by the frozen benchmark reference.
+            official: true
+            evidence_scopes: [INDEX_IDENTITY]
+      - provider: NASDAQ
+        code: NDX
+        alias_kind: PRIMARY_OFFICIAL_CODE
+        evidence:
+          - source_type: NASDAQ_OFFICIAL_INDEX_PAGE
+            source_url: https://indexes.nasdaqomx.com/Index/Overview/NDX
+            retrieved_at: 2026-09-04T17:20:00+08:00
+            claim: Nasdaq official index page identifies NDX as the Nasdaq-100 index.
+            official: true
+            evidence_scopes: [INDEX_IDENTITY]
+
+  - canonical_index_id: HANG_SENG_INDEX
+    canonical_name: 恒生指数
+    logical_asset_id: HK_BROAD
+    frozen_benchmark: true
+    frozen_return_variant: PRICE_INDEX
+    aliases:
+      - provider: LONG_BRIDGE
+        code: HSI.HK
+        alias_kind: PROVIDER_SYMBOL_ALIAS
+        evidence:
+          - source_type: LONGBRIDGE_OFFICIAL_SYMBOL_RULES
+            source_url: https://open.longbridge.com/docs/quote/quote-overview
+            retrieved_at: 2026-09-04T17:20:00+08:00
+            claim: Longbridge official quote documentation defines provider-qualified security symbols used by the frozen benchmark reference.
+            official: true
+            evidence_scopes: [INDEX_IDENTITY]
+      - provider: HANG_SENG_INDEXES
+        code: HSI
+        alias_kind: PRIMARY_OFFICIAL_CODE
+        evidence:
+          - source_type: HSI_OFFICIAL_INDEX_PAGE
+            source_url: https://www.hsi.com.hk/eng/indexes/all-indexes/hsi
+            retrieved_at: 2026-09-04T17:20:00+08:00
+            claim: Hang Seng Indexes identifies HSI as the Hang Seng Index.
+            official: true
+            evidence_scopes: [INDEX_IDENTITY]
+
+  - canonical_index_id: SGE_AU9999_SPOT
+    canonical_name: 上海黄金交易所Au99.99现货合约
+    logical_asset_id: GOLD
+    frozen_benchmark: true
+    frozen_return_variant: SPOT_PRICE
+    aliases:
+      - provider: SGE
+        code: Au99.99
+        alias_kind: PRIMARY_OFFICIAL_CODE
+        evidence:
+          - source_type: SGE_OFFICIAL_CONTRACT_REFERENCE
+            source_url: https://www.sge.com.cn/sjzx/mrhqsj
+            retrieved_at: 2026-09-04T17:20:00+08:00
+            claim: Shanghai Gold Exchange uses Au99.99 as the official spot contract code.
+            official: true
+            evidence_scopes: [INDEX_IDENTITY]
+      - provider: SGE
+        code: Au9999
+        alias_kind: PROVIDER_FORMAT_ALIAS
+        evidence:
+          - source_type: SGE_OFFICIAL_GOLD_ETF_REFERENCE
+            source_url: https://www.sge.com.cn/cpfw/hjetf
+            retrieved_at: 2026-09-04T17:20:00+08:00
+            claim: SGE official ETF reference uses Au99.99/Au9999 labels for the same Au99.99 spot-contract exposure.
+            official: true
+            evidence_scopes: [INDEX_IDENTITY]
+
+  - canonical_index_id: SGE_SHAU_BENCHMARK
+    canonical_name: 上海金集中定价合约
+    logical_asset_id: GOLD
+    frozen_benchmark: false
+    frozen_return_variant: null
+    aliases:
+      - provider: SGE
+        code: SHAUCNY
+        alias_kind: PRIMARY_OFFICIAL_CODE
+        evidence:
+          - source_type: SGE_OFFICIAL_CONTRACT_REFERENCE
+            source_url: https://www.sge.com.cn/cpfw/shanghai-gold
+            retrieved_at: 2026-09-04T17:20:00+08:00
+            claim: Shanghai Gold Exchange identifies SHAU as the Shanghai Gold centralized pricing contract.
+            official: true
+            evidence_scopes: [INDEX_IDENTITY]
+
+  - canonical_index_id: SSE_10Y_TREASURY_FULL_PRICE
+    canonical_name: 上证10年期国债指数
+    logical_asset_id: BOND_LONG
+    frozen_benchmark: true
+    frozen_return_variant: FULL_PRICE_INDEX
+    aliases:
+      - provider: CSINDEX
+        code: H11077
+        alias_kind: PRIMARY_OFFICIAL_CODE
+        evidence:
+          - source_type: CSINDEX_OFFICIAL_FACTSHEET
+            source_url: https://oss-ch.csindex.com.cn/static/html/csindex/public/uploads/indices/detail/files/zh_CN/H11077factsheet.pdf
+            retrieved_at: 2026-09-04T17:20:00+08:00
+            claim: CSI official factsheet identifies H11077 as the SSE 10-Year Treasury full-price index.
+            official: true
+            evidence_scopes: [INDEX_IDENTITY]
+
+  - canonical_index_id: SSE_5Y_TREASURY_FULL_PRICE
+    canonical_name: 上证5年期国债指数
+    logical_asset_id: BOND_MED
+    frozen_benchmark: true
+    frozen_return_variant: FULL_PRICE_INDEX
+    aliases:
+      - provider: CSINDEX
+        code: H00140
+        alias_kind: PRIMARY_OFFICIAL_CODE
+        evidence:
+          - source_type: CSINDEX_OFFICIAL_FACTSHEET
+            source_url: https://oss-ch.csindex.com.cn/static/html/csindex/public/uploads/indices/detail/files/zh_CN/H00140factsheet.pdf
+            retrieved_at: 2026-09-04T17:20:00+08:00
+            claim: CSI official factsheet identifies H00140 as the SSE 5-Year Treasury full-price index.
+            official: true
+            evidence_scopes: [INDEX_IDENTITY]

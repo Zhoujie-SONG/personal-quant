@@ -1,8 +1,8 @@
 schema_name: historical_vehicle_candidate_evidence
-schema_version: "1.0"
-registry_name: M2B0_HISTORICAL_VEHICLE_CANDIDATES
+schema_version: "1.1"
+registry_name: M2B0_1_HISTORICAL_VEHICLE_CANDIDATES
 status: CANDIDATE_NOT_APPROVED
-source_commit: f866a80f1f3496d6c8ac8f1644abe052367a7194
+source_commit: 706f68d170eb9acb78453cfbddeab1ad34eeebb9
 
 universe_binding:
   path: configs/universe_v1.yaml
@@ -10,531 +10,398 @@ universe_binding:
   universe_status: FROZEN_V1
   universe_file_sha256: 7a72fcb6ae8ab60cc2cbf89bf6276251c626e94e8dcd1169f2b08e4564c9ca2e
 
+index_identity_binding:
+  path: configs/index_identity_aliases_candidate.yaml
+  status: CANDIDATE_VERIFIED_IDENTITY
+
 discovery_seed:
-  source_type: AKSHARE_CURRENT_ETF_SNAPSHOT
-  endpoint: fund_etf_spot_em
-  retrieved_at: 2026-09-04T15:00:27+08:00
+  source_type: AKSHARE_AND_EXCHANGE_CURRENT_ETF_TABLES
+  endpoints: [fund_etf_spot_em, SSE_OFFICIAL_FUND_LIST, SZSE_OFFICIAL_ETF_LIST]
+  retrieved_at: 2026-09-04T15:34:57+08:00
   data_semantics: CURRENT_SNAPSHOT
+  current_snapshot_disposition_count: 107
   historical_universe_inference_allowed: false
-  notes: >-
-    The current ETF list was used only to seed discovery. It cannot establish
-    historical existence, delisting completeness, or mapping validity. Every
-    retained candidate below is supported separately by official product or
-    index-provider evidence.
+  retention_contract: >-
+    Every obvious name or tracking-identity match in the bounded discovery seed
+    has a disposition below. No current candidate was removed using size,
+    turnover, bid/ask cost, premium, or any performance statistic.
 
 registry_completeness:
   status: PARTIAL_CURATED
   historical_cemetery_complete: false
+  targeted_cemetery_search: ADDITIONAL_TERMINATED_FOUND
   scope_note: >-
-    Curated evidence-complete candidates for the frozen active Logical Assets.
-    No authoritative all-history ETF security master was available, so zero
-    known delistings must not be interpreted as zero historical delistings.
+    Targeted SSE/SZSE listings, fund terminations, annual statistics, manager
+    disclosures, and index-provider records found one additional terminated
+    semantic candidate, 560890.SH. This is not an exhaustive Chinese ETF
+    security master and cannot support a cemetery-complete claim.
 
-candidates:
-  - logical_asset_id: CN_LARGE
-    vehicle_symbol: 510300.SH
-    fund_name: 华泰柏瑞沪深300交易型开放式指数证券投资基金
-    exchange: SSE
-    vehicle_type: ETF
+candidate_defaults:
+  vehicle_type: ETF
+  approval_status: UNREVIEWED
+  data_semantics: CURRENT_SURVIVOR_WITH_OFFICIAL_PRODUCT_HISTORY
+  cross_border: false
+  qdii: false
+
+evidence_catalog:
+  SSE_CURRENT_ETF_TABLE:
+    source_type: SSE_OFFICIAL_FUND_LIST
+    source_url: https://etf.sse.com.cn/fundlist/
+    retrieved_at: 2026-09-04T17:00:00+08:00
+    claim: The official SSE fund table supplies fund code, expanded name, listing date, and target-index identity for the referenced current ETF row.
+    official: true
+    evidence_scopes: [VEHICLE_IDENTITY, LISTING_PERIOD, TRACKING_INDEX, CURRENT_EXISTENCE]
+  SZSE_CURRENT_ETF_TABLE:
+    source_type: SZSE_OFFICIAL_ETF_LIST_AND_STATISTICS
+    source_url: https://www.szse.cn/www/market/product/list/etfList/
+    retrieved_at: 2026-09-04T17:00:00+08:00
+    claim: Official SZSE ETF product and monthly-statistics records supply fund code, listing identity, and target-index identity for the referenced current ETF row.
+    official: true
+    evidence_scopes: [VEHICLE_IDENTITY, LISTING_PERIOD, TRACKING_INDEX, CURRENT_EXISTENCE]
+  SSE_GOLD_GUIDE:
+    source_type: SSE_OFFICIAL_GOLD_ETF_GUIDE
+    source_url: https://star.sse.com.cn/aboutus/research/report/c/10056573/files/ac9c082e4dbb44ca8bf2e1045c6ff704.pdf
+    retrieved_at: 2026-09-04T17:00:00+08:00
+    claim: SSE official guide distinguishes Au99.99-tracking gold ETFs from Shanghai-Gold-benchmark ETFs.
+    official: true
+    evidence_scopes: [VEHICLE_IDENTITY, TRACKING_INDEX]
+  SGE_GOLD_REFERENCE:
+    source_type: SGE_OFFICIAL_GOLD_ETF_REFERENCE
+    source_url: https://www.sge.com.cn/cpfw/hjetf
+    retrieved_at: 2026-09-04T17:00:00+08:00
+    claim: Shanghai Gold Exchange official product reference identifies current gold ETFs and whether their exposure uses Au99.99 or the Shanghai Gold benchmark.
+    official: true
+    evidence_scopes: [VEHICLE_IDENTITY, TRACKING_INDEX, CURRENT_EXISTENCE]
+  SSE_REJECTED_SEMANTICS:
+    source_type: SSE_OFFICIAL_FUND_LIST
+    source_url: https://etf.sse.com.cn/fundlist/
+    retrieved_at: 2026-09-04T17:00:00+08:00
+    claim: Official SSE classification and target-index fields show that the referenced seed is gold-industry equity or money-market exposure, not spot gold.
+    official: true
+    evidence_scopes: [VEHICLE_IDENTITY, LISTING_PERIOD, TRACKING_INDEX, CURRENT_EXISTENCE, SEMANTIC_MISMATCH]
+  SZSE_REJECTED_SEMANTICS:
+    source_type: SZSE_OFFICIAL_ETF_LIST_AND_STATISTICS
+    source_url: https://www.szse.cn/www/market/product/list/etfList/
+    retrieved_at: 2026-09-04T17:00:00+08:00
+    claim: Official SZSE product records show that the referenced name seed tracks gold-industry equities rather than spot gold.
+    official: true
+    evidence_scopes: [VEHICLE_IDENTITY, LISTING_PERIOD, TRACKING_INDEX, CURRENT_EXISTENCE, SEMANTIC_MISMATCH]
+  SSE_560890_LISTING_TRACKING:
+    source_type: SSE_OFFICIAL_FUND_PRODUCT_OVERVIEW
+    source_url: https://www.sse.com.cn/disclosure/fund/announcement/c/new/2024-09-23/560890_20240923_BBTT.pdf
+    retrieved_at: 2026-09-04T17:00:00+08:00
+    claim: Official product overview identifies 560890, its 2024-09-20 SSE listing, and its CSI Dividend Low Volatility target-index objective.
+    official: true
+    evidence_scopes: [VEHICLE_IDENTITY, LISTING_PERIOD, TRACKING_INDEX]
+  SSE_560890_TERMINATION:
+    source_type: SSE_OFFICIAL_TERMINATION_NOTICE
+    source_url: https://www.sse.com.cn/disclosure/announcement/listing/c/c_20260331_10813607.shtml
+    retrieved_at: 2026-09-04T17:00:00+08:00
+    claim: SSE states that 560890 terminates listing effective 2026-04-01.
+    official: true
+    evidence_scopes: [TERMINATION]
+  CSINDEX_560890_PROXY:
+    source_type: CSINDEX_OFFICIAL_METHODOLOGY
+    source_url: https://oss-ch.csindex.com.cn/static/html/csindex/public/uploads/indices/detail/files/zh_CN/H30269_Index_Methodology_cn.pdf
+    retrieved_at: 2026-09-04T17:00:00+08:00
+    claim: CSI methodology identifies H30269 as CSI Dividend Low Volatility, a different methodology from frozen CSI Dividend 000922.
+    official: true
+    evidence_scopes: [TRACKING_INDEX, SEMANTIC_MISMATCH]
+
+candidate_groups:
+  CN_LARGE:
+    tracking_index_provider: CSINDEX
     tracking_index_code: "000300"
     tracking_index_name: 沪深300指数
-    mapping_class: EXACT_TRACKING
-    approval_status: UNREVIEWED
-    list_date: 2012-05-28
-    delist_date: null
-    mapping_effective_from: 2012-05-28
-    mapping_effective_to: null
-    cross_border: false
-    qdii: false
-    data_semantics: CURRENT_SURVIVOR_WITH_OFFICIAL_PRODUCT_HISTORY
-    evidence:
-      - source_type: SSE_OFFICIAL_FUND_ANNOUNCEMENT
-        source_url: https://www.sse.com.cn/disclosure/fund/announcement/c/new/2024-03-29/510300_20240329_7DBJ.pdf
-        retrieved_at: 2026-09-04T15:00:27+08:00
-        claim: Official fund document identifies 510300, its 2012-05-28 listing date, and CSI 300 tracking objective.
-        official: true
-        evidence_scopes: [VEHICLE_IDENTITY, LISTING_PERIOD, TRACKING_INDEX, CURRENT_EXISTENCE]
-    notes: >-
-      Mapping start equals the documented listing date for this candidate; the
-      schema keeps listing and economic mapping dates as separate concepts.
+    canonical_index_id: CSI_300
+    tracking_return_variant: PRICE_INDEX
+    mapping_class: EXACT_BENCHMARK
+    notes: Official target identity matches the frozen CSI 300 price-index benchmark; no vehicle is preferred here.
+    vehicles:
+      - {vehicle_symbol: 510300.SH, fund_name: 沪深300ETF华泰柏瑞, list_date: 2012-05-28, evidence_refs: [SSE_CURRENT_ETF_TABLE]}
+      - {vehicle_symbol: 510310.SH, fund_name: 沪深300ETF易方达, list_date: 2013-03-25, evidence_refs: [SSE_CURRENT_ETF_TABLE]}
+      - {vehicle_symbol: 510320.SH, fund_name: 沪深300ETF中金, list_date: 2025-04-25, evidence_refs: [SSE_CURRENT_ETF_TABLE]}
+      - {vehicle_symbol: 510330.SH, fund_name: 沪深300ETF华夏, list_date: 2013-01-16, evidence_refs: [SSE_CURRENT_ETF_TABLE]}
+      - {vehicle_symbol: 510350.SH, fund_name: 沪深300ETF工银, list_date: 2019-08-16, evidence_refs: [SSE_CURRENT_ETF_TABLE]}
+      - {vehicle_symbol: 510360.SH, fund_name: 沪深300ETF广发, list_date: 2015-09-09, evidence_refs: [SSE_CURRENT_ETF_TABLE]}
+      - {vehicle_symbol: 510370.SH, fund_name: 沪深300ETF兴业, list_date: 2020-10-27, evidence_refs: [SSE_CURRENT_ETF_TABLE]}
+      - {vehicle_symbol: 510380.SH, fund_name: 沪深300ETF国寿, list_date: 2018-02-07, evidence_refs: [SSE_CURRENT_ETF_TABLE]}
+      - {vehicle_symbol: 510390.SH, fund_name: 沪深300ETF平安, list_date: 2018-01-26, evidence_refs: [SSE_CURRENT_ETF_TABLE]}
+      - {vehicle_symbol: 515130.SH, fund_name: 沪深300ETF博时, list_date: 2020-05-11, evidence_refs: [SSE_CURRENT_ETF_TABLE]}
+      - {vehicle_symbol: 515310.SH, fund_name: 沪深300ETF汇添富, list_date: 2019-12-25, evidence_refs: [SSE_CURRENT_ETF_TABLE]}
+      - {vehicle_symbol: 515330.SH, fund_name: 沪深300ETF天弘, list_date: 2019-12-26, evidence_refs: [SSE_CURRENT_ETF_TABLE]}
+      - {vehicle_symbol: 515350.SH, fund_name: 沪深300ETF民生加银, list_date: 2020-02-07, evidence_refs: [SSE_CURRENT_ETF_TABLE]}
+      - {vehicle_symbol: 515360.SH, fund_name: 沪深300ETF方正富邦, list_date: 2019-11-01, evidence_refs: [SSE_CURRENT_ETF_TABLE]}
+      - {vehicle_symbol: 515380.SH, fund_name: 沪深300ETF泰康, list_date: 2020-03-23, evidence_refs: [SSE_CURRENT_ETF_TABLE]}
+      - {vehicle_symbol: 515390.SH, fund_name: 沪深300ETF华安, list_date: 2020-01-10, evidence_refs: [SSE_CURRENT_ETF_TABLE]}
+      - {vehicle_symbol: 515660.SH, fund_name: 沪深300ETF国联安, list_date: 2019-12-24, evidence_refs: [SSE_CURRENT_ETF_TABLE]}
+      - {vehicle_symbol: 561930.SH, fund_name: 沪深300ETF招商, list_date: 2024-09-20, evidence_refs: [SSE_CURRENT_ETF_TABLE]}
+      - {vehicle_symbol: 563520.SH, fund_name: 沪深300ETF永赢, list_date: 2024-11-18, evidence_refs: [SSE_CURRENT_ETF_TABLE]}
+      - {vehicle_symbol: 159300.SZ, fund_name: 沪深300ETF富国, list_date: 2024-06-05, tracking_index_provider: SZSE, tracking_index_code: "399300", evidence_refs: [SZSE_CURRENT_ETF_TABLE]}
+      - {vehicle_symbol: 159330.SZ, fund_name: 沪深300ETF东财, list_date: 2024-08-19, tracking_index_provider: SZSE, tracking_index_code: "399300", evidence_refs: [SZSE_CURRENT_ETF_TABLE]}
+      - {vehicle_symbol: 159393.SZ, fund_name: 沪深300ETF万家, list_date: 2025-03-10, tracking_index_provider: SZSE, tracking_index_code: "399300", evidence_refs: [SZSE_CURRENT_ETF_TABLE]}
+      - {vehicle_symbol: 159673.SZ, fund_name: 沪深300ETF鹏华, list_date: 2023-07-17, tracking_index_provider: SZSE, tracking_index_code: "399300", evidence_refs: [SZSE_CURRENT_ETF_TABLE]}
+      - {vehicle_symbol: 159919.SZ, fund_name: 沪深300ETF嘉实, list_date: 2012-05-28, tracking_index_provider: SZSE, tracking_index_code: "399300", evidence_refs: [SZSE_CURRENT_ETF_TABLE]}
+      - {vehicle_symbol: 159925.SZ, fund_name: 沪深300ETF南方, list_date: 2013-04-11, tracking_index_provider: SZSE, tracking_index_code: "399300", evidence_refs: [SZSE_CURRENT_ETF_TABLE]}
 
-  - logical_asset_id: CN_SMALL
-    vehicle_symbol: 512100.SH
-    fund_name: 南方中证1000交易型开放式指数证券投资基金
-    exchange: SSE
-    vehicle_type: ETF
+  CN_SMALL:
+    tracking_index_provider: CSINDEX
     tracking_index_code: "000852"
     tracking_index_name: 中证1000指数
-    mapping_class: EXACT_TRACKING
-    approval_status: UNREVIEWED
-    list_date: 2016-11-04
-    delist_date: null
-    mapping_effective_from: 2016-11-04
-    mapping_effective_to: null
-    cross_border: false
-    qdii: false
-    data_semantics: CURRENT_SURVIVOR_WITH_OFFICIAL_PRODUCT_HISTORY
-    evidence:
-      - source_type: SSE_OFFICIAL_FUND_ANNOUNCEMENT
-        source_url: https://www.sse.com.cn/disclosure/fund/announcement/c/new/2023-12-15/512100_20231215_0U36.pdf
-        retrieved_at: 2026-09-04T15:00:27+08:00
-        claim: Official fund document identifies 512100, its 2016-11-04 listing date, and CSI 1000 tracking objective.
-        official: true
-        evidence_scopes: [VEHICLE_IDENTITY, LISTING_PERIOD, TRACKING_INDEX, CURRENT_EXISTENCE]
-    notes: >-
-      Mapping start equals the documented listing date for this candidate; no
-      historical predecessor or successor mapping is inferred.
+    canonical_index_id: CSI_1000
+    tracking_return_variant: PRICE_INDEX
+    mapping_class: EXACT_BENCHMARK
+    notes: Official target identity matches the frozen CSI 1000 price-index benchmark.
+    vehicles:
+      - {vehicle_symbol: 512100.SH, fund_name: 中证1000ETF南方, list_date: 2016-11-04, evidence_refs: [SSE_CURRENT_ETF_TABLE]}
+      - {vehicle_symbol: 516300.SH, fund_name: 中证1000ETF华泰柏瑞, list_date: 2021-03-24, evidence_refs: [SSE_CURRENT_ETF_TABLE]}
+      - {vehicle_symbol: 560010.SH, fund_name: 中证1000ETF广发, list_date: 2022-08-04, evidence_refs: [SSE_CURRENT_ETF_TABLE]}
+      - {vehicle_symbol: 560110.SH, fund_name: 中证1000ETF汇添富, list_date: 2022-08-08, evidence_refs: [SSE_CURRENT_ETF_TABLE]}
+      - {vehicle_symbol: 159629.SZ, fund_name: 中证1000ETF富国, list_date: 2022-08-03, evidence_refs: [SZSE_CURRENT_ETF_TABLE]}
+      - {vehicle_symbol: 159633.SZ, fund_name: 中证1000ETF易方达, list_date: 2022-08-04, evidence_refs: [SZSE_CURRENT_ETF_TABLE]}
+      - {vehicle_symbol: 159845.SZ, fund_name: 中证1000ETF华夏, list_date: 2021-03-31, evidence_refs: [SZSE_CURRENT_ETF_TABLE]}
 
-  - logical_asset_id: CN_GROWTH
-    vehicle_symbol: 159915.SZ
-    fund_name: 易方达创业板交易型开放式指数证券投资基金
-    exchange: SZSE
-    vehicle_type: ETF
+  CN_GROWTH:
+    tracking_index_provider: SZSE
     tracking_index_code: "399006"
     tracking_index_name: 创业板指数
-    mapping_class: EXACT_TRACKING
-    approval_status: UNREVIEWED
-    list_date: 2011-12-09
-    delist_date: null
-    mapping_effective_from: 2011-12-09
-    mapping_effective_to: null
-    cross_border: false
-    qdii: false
-    data_semantics: CURRENT_SURVIVOR_WITH_OFFICIAL_PRODUCT_HISTORY
-    evidence:
-      - source_type: SZSE_OFFICIAL_LISTING_NOTICE
-        source_url: https://www.szse.cn/disclosure/notice/fund/t20111207_516231.html
-        retrieved_at: 2026-09-04T15:00:27+08:00
-        claim: Official SZSE notice identifies 159915 as an ETF listed on 2011-12-09.
-        official: true
-        evidence_scopes: [VEHICLE_IDENTITY, LISTING_PERIOD]
-      - source_type: SZSE_OFFICIAL_PRODUCT_REFERENCE
-        source_url: https://www.szse.cn/www/investor/institute/rules/t20230828_603016.html
-        retrieved_at: 2026-09-04T15:00:27+08:00
-        claim: Official SZSE product reference maps 159915 to the ChiNext Index 399006.
-        official: true
-        evidence_scopes: [TRACKING_INDEX, CURRENT_EXISTENCE]
-    notes: >-
-      The listing and index claims come from separate official SZSE records;
-      approval remains a future human review decision.
+    canonical_index_id: CHINEXT
+    tracking_return_variant: PRICE_INDEX
+    mapping_class: EXACT_BENCHMARK
+    notes: Official target identity matches the frozen ChiNext price-index benchmark.
+    evidence_refs: [SZSE_CURRENT_ETF_TABLE]
+    vehicles:
+      - {vehicle_symbol: 159205.SZ, fund_name: 创业板ETF东财, list_date: 2025-06-12}
+      - {vehicle_symbol: 159247.SZ, fund_name: 创业板ETF汇添富, list_date: 2026-02-02}
+      - {vehicle_symbol: 159810.SZ, fund_name: 创业板ETF浦银, list_date: 2020-07-10}
+      - {vehicle_symbol: 159821.SZ, fund_name: 创业板ETF中银证券, list_date: 2020-10-29}
+      - {vehicle_symbol: 159908.SZ, fund_name: 创业板ETF博时, list_date: 2011-07-13}
+      - {vehicle_symbol: 159915.SZ, fund_name: 创业板ETF易方达, list_date: 2011-12-09}
+      - {vehicle_symbol: 159948.SZ, fund_name: 创业板ETF南方, list_date: 2016-05-31}
+      - {vehicle_symbol: 159952.SZ, fund_name: 创业板ETF广发, list_date: 2017-05-19}
+      - {vehicle_symbol: 159956.SZ, fund_name: 创业板ETF建信, list_date: 2018-03-07}
+      - {vehicle_symbol: 159957.SZ, fund_name: 创业板ETF华夏, list_date: 2018-01-04}
+      - {vehicle_symbol: 159958.SZ, fund_name: 创业板ETF工银, list_date: 2018-01-19}
+      - {vehicle_symbol: 159964.SZ, fund_name: 创业板ETF平安, list_date: 2019-04-19}
+      - {vehicle_symbol: 159971.SZ, fund_name: 创业板ETF富国, list_date: 2019-07-02}
+      - {vehicle_symbol: 159977.SZ, fund_name: 创业板ETF天弘, list_date: 2019-09-27}
 
-  - logical_asset_id: CN_DIVIDEND
-    vehicle_symbol: 515180.SH
-    fund_name: 易方达中证红利交易型开放式指数证券投资基金
-    exchange: SSE
-    vehicle_type: ETF
+  CN_DIVIDEND:
+    tracking_index_provider: CSINDEX
     tracking_index_code: "000922"
     tracking_index_name: 中证红利指数
-    mapping_class: EXACT_TRACKING
-    approval_status: UNREVIEWED
-    list_date: 2019-12-20
-    delist_date: null
-    mapping_effective_from: 2019-12-20
-    mapping_effective_to: null
-    cross_border: false
-    qdii: false
-    data_semantics: CURRENT_SURVIVOR_WITH_OFFICIAL_PRODUCT_HISTORY
-    evidence:
-      - source_type: SSE_OFFICIAL_FUND_ANNOUNCEMENT
-        source_url: https://www.sse.com.cn/disclosure/fund/announcement/c/new/2023-05-18/515180_20230518_CA1U.pdf
-        retrieved_at: 2026-09-04T15:00:27+08:00
-        claim: Official fund document identifies 515180, the listing date, and its CSI Dividend tracking objective.
-        official: true
-        evidence_scopes: [VEHICLE_IDENTITY, LISTING_PERIOD, TRACKING_INDEX, CURRENT_EXISTENCE]
-      - source_type: CSINDEX_OFFICIAL_METHODOLOGY
-        source_url: https://oss-ch.csindex.com.cn/static/html/csindex/public/uploads/indices/detail/files/zh_CN/20231208175433-000922_Index_Methodology_cn.pdf
-        retrieved_at: 2026-09-04T15:00:27+08:00
-        claim: CSI methodology identifies index 000922 as CSI Dividend.
-        official: true
-        evidence_scopes: [TRACKING_INDEX]
-    notes: Exact candidate for the frozen 000922 benchmark; still UNREVIEWED.
+    canonical_index_id: CSI_DIVIDEND
+    tracking_return_variant: PRICE_INDEX
+    mapping_class: EXACT_BENCHMARK
+    notes: Direct CSI Dividend candidates are distinct from explicitly retained dividend-methodology proxies.
+    vehicles:
+      - {vehicle_symbol: 515080.SH, fund_name: 中证红利ETF招商, list_date: 2019-12-27, evidence_refs: [SSE_CURRENT_ETF_TABLE]}
+      - {vehicle_symbol: 515180.SH, fund_name: 红利ETF易方达, list_date: 2019-12-20, evidence_refs: [SSE_CURRENT_ETF_TABLE]}
+      - {vehicle_symbol: 515890.SH, fund_name: 红利ETF博时, list_date: 2020-04-20, evidence_refs: [SSE_CURRENT_ETF_TABLE]}
+      - {vehicle_symbol: 560020.SH, fund_name: 红利ETF汇添富, list_date: 2023-10-16, evidence_refs: [SSE_CURRENT_ETF_TABLE]}
+      - {vehicle_symbol: 159581.SZ, fund_name: 红利ETF万家, list_date: 2024-03-15, evidence_refs: [SZSE_CURRENT_ETF_TABLE]}
+      - {vehicle_symbol: 159589.SZ, fund_name: 红利ETF广发, list_date: 2024-03-26, evidence_refs: [SZSE_CURRENT_ETF_TABLE]}
+      - vehicle_symbol: 510880.SH
+        fund_name: 红利ETF华泰柏瑞
+        list_date: 2007-01-18
+        tracking_index_code: "000015"
+        tracking_index_name: 上证红利指数
+        canonical_index_id: null
+        mapping_class: ECONOMIC_PROXY_CANDIDATE
+        evidence_refs: [SSE_CURRENT_ETF_TABLE]
+        notes: Preserved proxy; SSE Dividend methodology is not frozen CSI Dividend 000922.
+      - vehicle_symbol: 560890.SH
+        fund_name: 新华中证红利低波动ETF
+        list_date: 2024-09-20
+        delist_date: 2026-04-01
+        mapping_effective_to: 2026-04-01
+        tracking_index_code: H30269
+        tracking_index_name: 中证红利低波动指数
+        canonical_index_id: null
+        mapping_class: ECONOMIC_PROXY_CANDIDATE
+        data_semantics: KNOWN_HISTORICAL_WITH_OFFICIAL_TERMINATION
+        evidence_refs: [SSE_560890_LISTING_TRACKING, SSE_560890_TERMINATION, CSINDEX_560890_PROXY]
+        notes: Targeted cemetery hit; retained as a terminated methodology proxy, never as frozen-benchmark identity.
 
-  - logical_asset_id: CN_DIVIDEND
-    vehicle_symbol: 510880.SH
-    fund_name: 上证红利交易型开放式指数证券投资基金
-    exchange: SSE
-    vehicle_type: ETF
-    tracking_index_code: "000015"
-    tracking_index_name: 上证红利指数
-    mapping_class: ECONOMIC_PROXY_CANDIDATE
-    approval_status: UNREVIEWED
-    list_date: 2007-01-18
-    delist_date: null
-    mapping_effective_from: 2007-01-18
-    mapping_effective_to: null
-    cross_border: false
-    qdii: false
-    data_semantics: CURRENT_SURVIVOR_WITH_OFFICIAL_PRODUCT_HISTORY
-    evidence:
-      - source_type: SSE_OFFICIAL_FUND_ANNOUNCEMENT
-        source_url: https://www.sse.com.cn/disclosure/fund/announcement/c/new/2026-03-31/510880_20260331_JVU4.pdf
-        retrieved_at: 2026-09-04T15:00:27+08:00
-        claim: Official fund document identifies 510880, its 2007-01-18 listing date, and SSE Dividend 000015 tracking objective.
-        official: true
-        evidence_scopes: [VEHICLE_IDENTITY, LISTING_PERIOD, TRACKING_INDEX, CURRENT_EXISTENCE, SEMANTIC_MISMATCH]
-    notes: >-
-      Proxy only: SSE Dividend 000015 is not the frozen CSI Dividend 000922
-      benchmark. No proxy approval or ranking is made.
-
-  - logical_asset_id: SEMI
-    vehicle_symbol: 512480.SH
-    fund_name: 国联安中证全指半导体产品与设备交易型开放式指数证券投资基金
-    exchange: SSE
-    vehicle_type: ETF
+  SEMI:
+    tracking_index_provider: CSINDEX
     tracking_index_code: H30184
     tracking_index_name: 中证全指半导体产品与设备指数
-    mapping_class: EXACT_TRACKING
-    approval_status: UNREVIEWED
-    list_date: 2019-06-12
-    delist_date: null
-    mapping_effective_from: 2019-06-12
-    mapping_effective_to: null
-    cross_border: false
-    qdii: false
-    data_semantics: CURRENT_SURVIVOR_WITH_OFFICIAL_PRODUCT_HISTORY
-    evidence:
-      - source_type: SSE_OFFICIAL_FUND_ANNOUNCEMENT
-        source_url: https://www.sse.com.cn/disclosure/fund/announcement/c/new/2024-05-17/512480_20240517_0GJB.pdf
-        retrieved_at: 2026-09-04T15:00:27+08:00
-        claim: Official fund document identifies 512480, its listing date, and H30184 tracking objective.
-        official: true
-        evidence_scopes: [VEHICLE_IDENTITY, LISTING_PERIOD, TRACKING_INDEX, CURRENT_EXISTENCE]
-      - source_type: CSINDEX_OFFICIAL_FACTSHEET
-        source_url: https://oss-ch.csindex.com.cn/static/html/csindex/public/uploads/indices/detail/files/zh_CN/H30184factsheet.pdf
-        retrieved_at: 2026-09-04T15:00:27+08:00
-        claim: CSI factsheet identifies H30184 as the all-share semiconductor products and equipment index.
-        official: true
-        evidence_scopes: [TRACKING_INDEX]
-    notes: Exact candidate for the frozen H30184 benchmark; still UNREVIEWED.
+    canonical_index_id: CSI_ALL_SHARE_SEMI
+    tracking_return_variant: PRICE_INDEX
+    mapping_class: EXACT_BENCHMARK
+    notes: Exact frozen H30184 price-index candidate.
+    vehicles:
+      - {vehicle_symbol: 512480.SH, fund_name: 半导体ETF国联安, list_date: 2019-06-12, evidence_refs: [SSE_CURRENT_ETF_TABLE]}
 
-  - logical_asset_id: HEALTHCARE
-    vehicle_symbol: 159938.SZ
-    fund_name: 广发中证全指医药卫生交易型开放式指数证券投资基金
-    exchange: SZSE
-    vehicle_type: ETF
+  HEALTHCARE:
+    tracking_index_provider: CSINDEX
     tracking_index_code: "000991"
     tracking_index_name: 中证全指医药卫生指数
-    mapping_class: EXACT_TRACKING
-    approval_status: UNREVIEWED
-    list_date: 2015-01-08
-    delist_date: null
-    mapping_effective_from: 2015-01-08
-    mapping_effective_to: null
-    cross_border: false
-    qdii: false
-    data_semantics: CURRENT_SURVIVOR_WITH_OFFICIAL_PRODUCT_HISTORY
-    evidence:
-      - source_type: FUND_MANAGER_OFFICIAL_DOCUMENT
-        source_url: https://www.gffunds.com.cn/jjgg/flwj/202601/P020260106334887571526.pdf
-        retrieved_at: 2026-09-04T15:00:27+08:00
-        claim: Official manager document identifies 159938, its 2015-01-08 listing date, and 000991 tracking objective.
-        official: true
-        evidence_scopes: [VEHICLE_IDENTITY, LISTING_PERIOD, TRACKING_INDEX, CURRENT_EXISTENCE]
-      - source_type: SZSE_OFFICIAL_PRODUCT_STATISTICS
-        source_url: https://docs.static.szse.cn/www/market/periodical/month/W020240607344713910299.html
-        retrieved_at: 2026-09-04T15:00:27+08:00
-        claim: Official SZSE product statistics map 159938 to index 000991.
-        official: true
-        evidence_scopes: [TRACKING_INDEX]
-    notes: Exact candidate for the frozen 000991 benchmark; still UNREVIEWED.
+    canonical_index_id: CSI_ALL_SHARE_HEALTHCARE
+    tracking_return_variant: PRICE_INDEX
+    mapping_class: EXACT_BENCHMARK
+    notes: Broad-health benchmark candidates remain separate from narrower medical proxies.
+    vehicles:
+      - {vehicle_symbol: 159938.SZ, fund_name: 医药ETF广发, list_date: 2015-01-08, evidence_refs: [SZSE_CURRENT_ETF_TABLE]}
+      - vehicle_symbol: 512170.SH
+        fund_name: 医疗ETF华宝
+        list_date: 2019-06-17
+        tracking_index_code: "399989"
+        tracking_index_name: 中证医疗指数
+        canonical_index_id: null
+        mapping_class: ECONOMIC_PROXY_CANDIDATE
+        evidence_refs: [SSE_CURRENT_ETF_TABLE]
+        notes: Preserved proxy; narrower CSI Medical methodology differs from frozen 000991.
 
-  - logical_asset_id: HEALTHCARE
-    vehicle_symbol: 512170.SH
-    fund_name: 华宝中证医疗交易型开放式指数证券投资基金
-    exchange: SSE
-    vehicle_type: ETF
-    tracking_index_code: "399989"
-    tracking_index_name: 中证医疗指数
-    mapping_class: ECONOMIC_PROXY_CANDIDATE
-    approval_status: UNREVIEWED
-    list_date: 2019-06-17
-    delist_date: null
-    mapping_effective_from: 2019-06-17
-    mapping_effective_to: null
-    cross_border: false
-    qdii: false
-    data_semantics: CURRENT_SURVIVOR_WITH_OFFICIAL_PRODUCT_HISTORY
-    evidence:
-      - source_type: SSE_OFFICIAL_FUND_ANNOUNCEMENT
-        source_url: https://www.sse.com.cn/disclosure/fund/announcement/c/new/2021-03-31/512170_20210331_5.pdf
-        retrieved_at: 2026-09-04T15:00:27+08:00
-        claim: Official fund document identifies 512170, its listing date, and CSI Medical 399989 tracking objective.
-        official: true
-        evidence_scopes: [VEHICLE_IDENTITY, LISTING_PERIOD, TRACKING_INDEX, CURRENT_EXISTENCE, SEMANTIC_MISMATCH]
-      - source_type: CSINDEX_OFFICIAL_FACTSHEET
-        source_url: https://oss-ch.csindex.com.cn/static/html/csindex/public/uploads/indices/detail/files/zh_CN/399989factsheet.pdf
-        retrieved_at: 2026-09-04T15:00:27+08:00
-        claim: CSI factsheet identifies 399989 as CSI Medical, not the frozen broader 000991 health-care benchmark.
-        official: true
-        evidence_scopes: [TRACKING_INDEX, SEMANTIC_MISMATCH]
-    notes: Proxy only because 399989 is not the frozen 000991 benchmark.
-
-  - logical_asset_id: CONSUMER
-    vehicle_symbol: 159928.SZ
-    fund_name: 中证主要消费交易型开放式指数证券投资基金
-    exchange: SZSE
-    vehicle_type: ETF
+  CONSUMER:
+    tracking_index_provider: CSINDEX
     tracking_index_code: "000932"
     tracking_index_name: 中证主要消费指数
-    mapping_class: EXACT_TRACKING
-    approval_status: UNREVIEWED
-    list_date: 2013-09-16
-    delist_date: null
-    mapping_effective_from: 2013-09-16
-    mapping_effective_to: null
-    cross_border: false
-    qdii: false
-    data_semantics: CURRENT_SURVIVOR_WITH_OFFICIAL_PRODUCT_HISTORY
-    evidence:
-      - source_type: FUND_MANAGER_OFFICIAL_DOCUMENT
-        source_url: https://www.99fund.com/upload/20250320/202503201742479775882.pdf
-        retrieved_at: 2026-09-04T15:00:27+08:00
-        claim: Official manager document identifies 159928, its 2013-09-16 listing date, and 000932 tracking objective.
-        official: true
-        evidence_scopes: [VEHICLE_IDENTITY, LISTING_PERIOD, TRACKING_INDEX, CURRENT_EXISTENCE]
-    notes: Exact candidate for the frozen 000932 benchmark; still UNREVIEWED.
+    canonical_index_id: CSI_CONSUMER_STAPLES
+    tracking_return_variant: PRICE_INDEX
+    mapping_class: EXACT_BENCHMARK
+    notes: Official target identity matches the frozen CSI Consumer Staples price index.
+    vehicles:
+      - {vehicle_symbol: 512600.SH, fund_name: 消费ETF嘉实, list_date: 2014-07-25, evidence_refs: [SSE_CURRENT_ETF_TABLE]}
+      - {vehicle_symbol: 560680.SH, fund_name: 消费ETF广发, list_date: 2022-10-31, evidence_refs: [SSE_CURRENT_ETF_TABLE]}
+      - {vehicle_symbol: 159672.SZ, fund_name: 消费ETF博时, list_date: 2023-04-03, evidence_refs: [SZSE_CURRENT_ETF_TABLE]}
+      - {vehicle_symbol: 159689.SZ, fund_name: 消费ETF南方, list_date: 2023-03-13, evidence_refs: [SZSE_CURRENT_ETF_TABLE]}
+      - {vehicle_symbol: 159928.SZ, fund_name: 消费ETF汇添富, list_date: 2013-09-16, evidence_refs: [SZSE_CURRENT_ETF_TABLE]}
 
-  - logical_asset_id: COAL
-    vehicle_symbol: 515220.SH
-    fund_name: 国泰中证煤炭交易型开放式指数证券投资基金
-    exchange: SSE
-    vehicle_type: ETF
+  COAL:
+    tracking_index_provider: CSINDEX
     tracking_index_code: "399998"
     tracking_index_name: 中证煤炭指数
-    mapping_class: EXACT_TRACKING
-    approval_status: UNREVIEWED
-    list_date: 2020-03-02
-    delist_date: null
-    mapping_effective_from: 2020-03-02
-    mapping_effective_to: null
-    cross_border: false
-    qdii: false
-    data_semantics: CURRENT_SURVIVOR_WITH_OFFICIAL_PRODUCT_HISTORY
-    evidence:
-      - source_type: SSE_OFFICIAL_FUND_ANNOUNCEMENT
-        source_url: https://www.sse.com.cn/disclosure/fund/announcement/c/new/2025-11-19/515220_20251119_XJRG.pdf
-        retrieved_at: 2026-09-04T15:00:27+08:00
-        claim: Official fund document identifies 515220, its 2020-03-02 listing date, and 399998 tracking objective.
-        official: true
-        evidence_scopes: [VEHICLE_IDENTITY, LISTING_PERIOD, TRACKING_INDEX, CURRENT_EXISTENCE]
-      - source_type: CSINDEX_OFFICIAL_METHODOLOGY
-        source_url: https://oss-ch.csindex.com.cn/static/html/csindex/public/uploads/indices/detail/files/zh_CN/20231208175431-399998_Index_Methodology_cn.pdf
-        retrieved_at: 2026-09-04T15:00:27+08:00
-        claim: CSI methodology identifies 399998 as CSI Coal.
-        official: true
-        evidence_scopes: [TRACKING_INDEX]
-    notes: Exact candidate for the frozen 399998 benchmark; still UNREVIEWED.
+    canonical_index_id: CSI_COAL
+    tracking_return_variant: PRICE_INDEX
+    mapping_class: EXACT_BENCHMARK
+    notes: Exact frozen CSI Coal price-index candidate.
+    vehicles:
+      - {vehicle_symbol: 515220.SH, fund_name: 煤炭ETF国泰, list_date: 2020-03-02, evidence_refs: [SSE_CURRENT_ETF_TABLE]}
 
-  - logical_asset_id: SP500
-    vehicle_symbol: 513500.SH
-    fund_name: 博时标普500交易型开放式指数证券投资基金
-    exchange: SSE
-    vehicle_type: ETF
+  SP500:
+    tracking_index_provider: S_AND_P_DJI
     tracking_index_code: SPX
-    tracking_index_name: 标普500净总收益指数
-    mapping_class: EXACT_TRACKING
-    approval_status: UNREVIEWED
-    list_date: 2014-01-15
-    delist_date: null
-    mapping_effective_from: 2014-01-15
-    mapping_effective_to: null
+    tracking_index_name: S&P 500
+    canonical_index_id: SP_500
+    tracking_return_variant: CURRENCY_ADJUSTED_PRICE_INDEX
+    mapping_class: EXACT_LOGICAL_EXPOSURE
     cross_border: true
     qdii: true
-    data_semantics: CURRENT_SURVIVOR_WITH_OFFICIAL_PRODUCT_HISTORY
-    evidence:
-      - source_type: SSE_OFFICIAL_FUND_REPORT
-        source_url: https://www.sse.com.cn/disclosure/fund/announcement/c/2015-08-26/513500_2015_z.pdf
-        retrieved_at: 2026-09-04T15:00:27+08:00
-        claim: Official fund report identifies 513500, its 2014-01-15 listing date, and the RMB-adjusted S&P 500 net total return benchmark.
-        official: true
-        evidence_scopes: [VEHICLE_IDENTITY, LISTING_PERIOD, TRACKING_INDEX, CURRENT_EXISTENCE]
-    notes: Cross-border QDII ETF; candidate approval is outside M2B.0.
+    notes: Core S&P 500 identity matches, while ETF benchmark return/currency treatment is not the frozen price series.
+    vehicles:
+      - {vehicle_symbol: 513500.SH, fund_name: 标普500ETF博时, list_date: 2014-01-15, tracking_return_variant: NET_TOTAL_RETURN_CNY, evidence_refs: [SSE_CURRENT_ETF_TABLE]}
+      - {vehicle_symbol: 513650.SH, fund_name: 标普500ETF南方, list_date: 2023-04-04, evidence_refs: [SSE_CURRENT_ETF_TABLE]}
+      - {vehicle_symbol: 159612.SZ, fund_name: 标普500ETF国泰, list_date: 2022-05-20, evidence_refs: [SZSE_CURRENT_ETF_TABLE]}
+      - {vehicle_symbol: 159655.SZ, fund_name: 标普500ETF华夏, list_date: 2022-10-25, evidence_refs: [SZSE_CURRENT_ETF_TABLE]}
 
-  - logical_asset_id: NASDAQ100
-    vehicle_symbol: 513100.SH
-    fund_name: 纳斯达克100交易型开放式指数证券投资基金
-    exchange: SSE
-    vehicle_type: ETF
+  NASDAQ100:
+    tracking_index_provider: NASDAQ
     tracking_index_code: NDX
-    tracking_index_name: 纳斯达克100指数
-    mapping_class: EXACT_TRACKING
-    approval_status: UNREVIEWED
-    list_date: 2013-05-15
-    delist_date: null
-    mapping_effective_from: 2013-05-15
-    mapping_effective_to: null
+    tracking_index_name: Nasdaq-100
+    canonical_index_id: NASDAQ_100
+    tracking_return_variant: CURRENCY_ADJUSTED_PRICE_INDEX
+    mapping_class: EXACT_LOGICAL_EXPOSURE
     cross_border: true
     qdii: true
-    data_semantics: CURRENT_SURVIVOR_WITH_OFFICIAL_PRODUCT_HISTORY
-    evidence:
-      - source_type: SSE_OFFICIAL_FUND_ANNOUNCEMENT
-        source_url: https://www.sse.com.cn/disclosure/fund/announcement/c/new/2022-11-11/513100_20221111_GFTW.pdf
-        retrieved_at: 2026-09-04T15:00:27+08:00
-        claim: Official fund document identifies 513100, its 2013-05-15 listing date, and Nasdaq-100 tracking objective.
-        official: true
-        evidence_scopes: [VEHICLE_IDENTITY, LISTING_PERIOD, TRACKING_INDEX, CURRENT_EXISTENCE]
-    notes: Cross-border QDII ETF; candidate approval is outside M2B.0.
+    notes: Core Nasdaq-100 identity matches, while ETF benchmarks include currency conversion or fair-value treatment.
+    vehicles:
+      - {vehicle_symbol: 513100.SH, fund_name: 纳指ETF国泰, list_date: 2013-05-15, evidence_refs: [SSE_CURRENT_ETF_TABLE]}
+      - {vehicle_symbol: 513110.SH, fund_name: 纳指ETF华泰柏瑞, list_date: 2023-03-20, evidence_refs: [SSE_CURRENT_ETF_TABLE]}
+      - {vehicle_symbol: 513300.SH, fund_name: 纳斯达克ETF华夏, list_date: 2020-11-05, evidence_refs: [SSE_CURRENT_ETF_TABLE]}
+      - {vehicle_symbol: 513390.SH, fund_name: 纳指100ETF博时, list_date: 2023-05-08, evidence_refs: [SSE_CURRENT_ETF_TABLE]}
+      - {vehicle_symbol: 513870.SH, fund_name: 纳指ETF富国, list_date: 2023-11-02, evidence_refs: [SSE_CURRENT_ETF_TABLE]}
+      - {vehicle_symbol: 159501.SZ, fund_name: 纳指ETF嘉实, list_date: 2023-06-14, evidence_refs: [SZSE_CURRENT_ETF_TABLE]}
+      - {vehicle_symbol: 159513.SZ, fund_name: 纳斯达克100ETF大成, list_date: 2023-07-28, evidence_refs: [SZSE_CURRENT_ETF_TABLE]}
+      - {vehicle_symbol: 159659.SZ, fund_name: 纳斯达克100ETF招商, list_date: 2023-04-25, evidence_refs: [SZSE_CURRENT_ETF_TABLE]}
+      - {vehicle_symbol: 159660.SZ, fund_name: 纳指ETF汇添富, list_date: 2023-04-17, evidence_refs: [SZSE_CURRENT_ETF_TABLE]}
+      - {vehicle_symbol: 159696.SZ, fund_name: 纳指ETF易方达, list_date: 2023-08-25, evidence_refs: [SZSE_CURRENT_ETF_TABLE]}
+      - {vehicle_symbol: 159941.SZ, fund_name: 纳指ETF广发, list_date: 2015-07-13, evidence_refs: [SZSE_CURRENT_ETF_TABLE]}
 
-  - logical_asset_id: HK_BROAD
-    vehicle_symbol: 159920.SZ
-    fund_name: 恒生交易型开放式指数证券投资基金
-    exchange: SZSE
-    vehicle_type: ETF
+  HK_BROAD:
+    tracking_index_provider: HANG_SENG_INDEXES
     tracking_index_code: HSI
     tracking_index_name: 恒生指数
-    mapping_class: EXACT_TRACKING
-    approval_status: UNREVIEWED
-    list_date: 2012-10-22
-    delist_date: null
-    mapping_effective_from: 2012-10-22
-    mapping_effective_to: null
+    canonical_index_id: HANG_SENG_INDEX
+    tracking_return_variant: CURRENCY_ADJUSTED_PRICE_INDEX
+    mapping_class: EXACT_LOGICAL_EXPOSURE
     cross_border: true
     qdii: true
-    data_semantics: CURRENT_SURVIVOR_WITH_OFFICIAL_PRODUCT_HISTORY
-    evidence:
-      - source_type: FUND_MANAGER_OFFICIAL_REPORT
-        source_url: https://fund.chinaamc.com/upload/resources/file/2026/03/31/d14d1e6f2eaa488e98473dc640e0fd1a.pdf
-        retrieved_at: 2026-09-04T15:00:27+08:00
-        claim: Official manager report identifies 159920, its 2012-10-22 listing date, and Hang Seng Index tracking objective.
-        official: true
-        evidence_scopes: [VEHICLE_IDENTITY, LISTING_PERIOD, TRACKING_INDEX, CURRENT_EXISTENCE]
-      - source_type: SZSE_OFFICIAL_PRODUCT_STATISTICS
-        source_url: https://docs.static.szse.cn/www/market/periodical/month/W020201104533160573244.html
-        retrieved_at: 2026-09-04T15:00:27+08:00
-        claim: Official SZSE product statistics map 159920 to HSI.
-        official: true
-        evidence_scopes: [TRACKING_INDEX]
-    notes: Cross-border QDII ETF; candidate approval is outside M2B.0.
+    notes: Core HSI identity matches; ETF benchmark currency/fair-value treatment differs from the frozen HSI price series.
+    vehicles:
+      - {vehicle_symbol: 513210.SH, fund_name: 恒生ETF易方达, list_date: 2024-04-22, evidence_refs: [SSE_CURRENT_ETF_TABLE]}
+      - {vehicle_symbol: 513600.SH, fund_name: 恒生指数ETF南方, list_date: 2015-01-26, evidence_refs: [SSE_CURRENT_ETF_TABLE]}
+      - {vehicle_symbol: 513660.SH, fund_name: 恒生ETF华夏, list_date: 2015-01-26, evidence_refs: [SSE_CURRENT_ETF_TABLE]}
+      - {vehicle_symbol: 159271.SZ, fund_name: 恒生ETF鹏华, list_date: 2025-08-11, evidence_refs: [SZSE_CURRENT_ETF_TABLE]}
+      - {vehicle_symbol: 159920.SZ, fund_name: 恒生ETF华夏, list_date: 2012-10-22, evidence_refs: [SZSE_CURRENT_ETF_TABLE]}
+      - vehicle_symbol: 520940.SH
+        fund_name: 港股通恒生ETF华安
+        list_date: 2025-06-09
+        tracking_index_code: null
+        tracking_index_name: 恒指港股通指数
+        canonical_index_id: null
+        tracking_return_variant: CURRENCY_ADJUSTED_PRICE_INDEX
+        mapping_class: ECONOMIC_PROXY_CANDIDATE
+        evidence_refs: [SSE_CURRENT_ETF_TABLE]
+        notes: Different constituent/access methodology; retained only as an HSI-adjacent proxy candidate.
 
-  - logical_asset_id: GOLD
-    vehicle_symbol: 518880.SH
-    fund_name: 华安易富黄金交易型开放式证券投资基金
-    exchange: SSE
-    vehicle_type: ETF
+  GOLD:
+    tracking_index_provider: SGE
     tracking_index_code: Au99.99
-    tracking_index_name: 上海黄金交易所Au99.99现货实盘合约收盘价
-    mapping_class: EXACT_TRACKING
-    approval_status: UNREVIEWED
-    list_date: 2013-07-29
-    delist_date: null
-    mapping_effective_from: 2013-07-29
-    mapping_effective_to: null
-    cross_border: false
-    qdii: false
-    data_semantics: CURRENT_SURVIVOR_WITH_OFFICIAL_PRODUCT_HISTORY
-    evidence:
-      - source_type: SSE_OFFICIAL_LISTING_DOCUMENT
-        source_url: https://www.sse.com.cn/disclosure/fund/announcement/c/2013-07-23/518880_20130724_1.pdf
-        retrieved_at: 2026-09-04T15:00:27+08:00
-        claim: Official listing document identifies 518880 and its 2013-07-29 listing date.
-        official: true
-        evidence_scopes: [VEHICLE_IDENTITY, LISTING_PERIOD]
-      - source_type: SGE_OFFICIAL_GOLD_ETF_REFERENCE
-        source_url: https://www.sge.com.cn/cpfw/hjetf
-        retrieved_at: 2026-09-04T15:00:27+08:00
-        claim: Shanghai Gold Exchange identifies 518880 as tracking the Au99.99 closing price.
-        official: true
-        evidence_scopes: [TRACKING_INDEX, CURRENT_EXISTENCE]
-    notes: Commodity-backed gold ETF candidate; approval remains UNREVIEWED.
+    tracking_index_name: 上海黄金交易所Au99.99现货合约
+    canonical_index_id: SGE_AU9999_SPOT
+    tracking_return_variant: SPOT_PRICE
+    mapping_class: EXACT_BENCHMARK
+    notes: Au99.99/Au9999 code formatting is a verified identity alias, not a proxy decision.
+    vehicles:
+      - {vehicle_symbol: 518880.SH, fund_name: 黄金ETF华安, list_date: 2013-07-29, tracking_index_code: Au9999, evidence_refs: [SSE_CURRENT_ETF_TABLE, SSE_GOLD_GUIDE]}
+      - {vehicle_symbol: 518800.SH, fund_name: 黄金ETF国泰, list_date: 2013-07-29, evidence_refs: [SSE_CURRENT_ETF_TABLE, SSE_GOLD_GUIDE]}
+      - {vehicle_symbol: 518850.SH, fund_name: 黄金ETF华夏, list_date: 2020-06-05, evidence_refs: [SSE_CURRENT_ETF_TABLE, SSE_GOLD_GUIDE]}
+      - {vehicle_symbol: 518660.SH, fund_name: 黄金ETF工银, list_date: 2020-05-29, evidence_refs: [SSE_CURRENT_ETF_TABLE, SSE_GOLD_GUIDE]}
+      - {vehicle_symbol: 159812.SZ, fund_name: 黄金ETF前海开源, list_date: 2020-05-29, evidence_refs: [SZSE_CURRENT_ETF_TABLE, SGE_GOLD_REFERENCE]}
+      - {vehicle_symbol: 159934.SZ, fund_name: 黄金ETF易方达, list_date: 2013-12-16, evidence_refs: [SZSE_CURRENT_ETF_TABLE, SGE_GOLD_REFERENCE]}
+      - {vehicle_symbol: 159937.SZ, fund_name: 黄金ETF博时, list_date: 2015-01-08, evidence_refs: [SZSE_CURRENT_ETF_TABLE, SGE_GOLD_REFERENCE]}
+      - {vehicle_symbol: 518600.SH, fund_name: 金ETF广发, list_date: 2020-08-05, tracking_index_code: SHAUCNY, tracking_index_name: 上海金集中定价合约, canonical_index_id: SGE_SHAU_BENCHMARK, tracking_return_variant: BENCHMARK_PRICE, mapping_class: EXACT_LOGICAL_EXPOSURE, evidence_refs: [SSE_CURRENT_ETF_TABLE, SSE_GOLD_GUIDE]}
+      - {vehicle_symbol: 518680.SH, fund_name: 金ETF富国, list_date: 2020-07-28, tracking_index_code: SHAUCNY, tracking_index_name: 上海金集中定价合约, canonical_index_id: SGE_SHAU_BENCHMARK, tracking_return_variant: BENCHMARK_PRICE, mapping_class: EXACT_LOGICAL_EXPOSURE, evidence_refs: [SSE_CURRENT_ETF_TABLE, SSE_GOLD_GUIDE]}
+      - {vehicle_symbol: 518860.SH, fund_name: 上海金ETF建信, list_date: 2020-09-07, tracking_index_code: SHAUCNY, tracking_index_name: 上海金集中定价合约, canonical_index_id: SGE_SHAU_BENCHMARK, tracking_return_variant: BENCHMARK_PRICE, mapping_class: EXACT_LOGICAL_EXPOSURE, evidence_refs: [SSE_CURRENT_ETF_TABLE, SSE_GOLD_GUIDE]}
+      - {vehicle_symbol: 518890.SH, fund_name: 上海金ETF中银, list_date: 2020-09-28, tracking_index_code: SHAUCNY, tracking_index_name: 上海金集中定价合约, canonical_index_id: SGE_SHAU_BENCHMARK, tracking_return_variant: BENCHMARK_PRICE, mapping_class: EXACT_LOGICAL_EXPOSURE, evidence_refs: [SSE_CURRENT_ETF_TABLE, SSE_GOLD_GUIDE]}
+      - {vehicle_symbol: 159830.SZ, fund_name: 金ETF天弘, list_date: 2021-07-19, tracking_index_code: SHAUCNY, tracking_index_name: 上海金集中定价合约, canonical_index_id: SGE_SHAU_BENCHMARK, tracking_return_variant: BENCHMARK_PRICE, mapping_class: EXACT_LOGICAL_EXPOSURE, evidence_refs: [SZSE_CURRENT_ETF_TABLE, SGE_GOLD_REFERENCE]}
+      - {vehicle_symbol: 159831.SZ, fund_name: 金ETF嘉实, list_date: 2022-04-07, tracking_index_code: SHAUCNY, tracking_index_name: 上海金集中定价合约, canonical_index_id: SGE_SHAU_BENCHMARK, tracking_return_variant: BENCHMARK_PRICE, mapping_class: EXACT_LOGICAL_EXPOSURE, evidence_refs: [SZSE_CURRENT_ETF_TABLE, SGE_GOLD_REFERENCE]}
+      - {vehicle_symbol: 159834.SZ, fund_name: 金ETF南方, list_date: 2022-03-16, tracking_index_code: SHAUCNY, tracking_index_name: 上海金集中定价合约, canonical_index_id: SGE_SHAU_BENCHMARK, tracking_return_variant: BENCHMARK_PRICE, mapping_class: EXACT_LOGICAL_EXPOSURE, evidence_refs: [SZSE_CURRENT_ETF_TABLE, SGE_GOLD_REFERENCE]}
+      - {vehicle_symbol: 517400.SH, fund_name: 黄金股ETF国泰, list_date: 2024-05-08, tracking_index_code: "931238", tracking_index_name: 中证沪深港黄金产业股票指数, canonical_index_id: null, tracking_return_variant: PRICE_INDEX, mapping_class: REJECTED_SEMANTIC_MISMATCH, evidence_refs: [SSE_REJECTED_SEMANTICS], notes: Gold-industry equities are not spot gold.}
+      - {vehicle_symbol: 517520.SH, fund_name: 黄金股ETF永赢, list_date: 2023-11-01, tracking_index_code: "931238", tracking_index_name: 中证沪深港黄金产业股票指数, canonical_index_id: null, tracking_return_variant: PRICE_INDEX, mapping_class: REJECTED_SEMANTIC_MISMATCH, evidence_refs: [SSE_REJECTED_SEMANTICS], notes: Preserved rejection; gold-industry equities are not spot gold.}
+      - {vehicle_symbol: 159315.SZ, fund_name: 黄金股ETF工银, list_date: 2024-06-14, tracking_index_code: "931238", tracking_index_name: 中证沪深港黄金产业股票指数, canonical_index_id: null, tracking_return_variant: PRICE_INDEX, mapping_class: REJECTED_SEMANTIC_MISMATCH, evidence_refs: [SZSE_REJECTED_SEMANTICS], notes: Gold-industry equities are not spot gold.}
+      - {vehicle_symbol: 159321.SZ, fund_name: 黄金股ETF华安, list_date: 2024-05-27, tracking_index_code: "931238", tracking_index_name: 中证沪深港黄金产业股票指数, canonical_index_id: null, tracking_return_variant: PRICE_INDEX, mapping_class: REJECTED_SEMANTIC_MISMATCH, evidence_refs: [SZSE_REJECTED_SEMANTICS], notes: Gold-industry equities are not spot gold.}
+      - {vehicle_symbol: 159322.SZ, fund_name: 黄金股ETF平安, list_date: 2024-06-14, tracking_index_code: "931238", tracking_index_name: 中证沪深港黄金产业股票指数, canonical_index_id: null, tracking_return_variant: PRICE_INDEX, mapping_class: REJECTED_SEMANTIC_MISMATCH, evidence_refs: [SZSE_REJECTED_SEMANTICS], notes: Gold-industry equities are not spot gold.}
+      - {vehicle_symbol: 159562.SZ, fund_name: 黄金股ETF华夏, list_date: 2024-01-22, tracking_index_code: "931238", tracking_index_name: 中证沪深港黄金产业股票指数, canonical_index_id: null, tracking_return_variant: PRICE_INDEX, mapping_class: REJECTED_SEMANTIC_MISMATCH, evidence_refs: [SZSE_REJECTED_SEMANTICS], notes: Gold-industry equities are not spot gold.}
+      - {vehicle_symbol: 511670.SH, fund_name: 华泰天天金ETF, list_date: 2017-08-28, tracking_index_provider: null, tracking_index_code: null, tracking_index_name: 货币市场基金, canonical_index_id: null, tracking_return_variant: MONEY_MARKET_NAV, mapping_class: REJECTED_SEMANTIC_MISMATCH, evidence_refs: [SSE_REJECTED_SEMANTICS], notes: Broad name seed false positive; money-market exposure is not spot gold.}
 
-  - logical_asset_id: GOLD
-    vehicle_symbol: 517520.SH
-    fund_name: 永赢中证沪深港黄金产业股票交易型开放式指数证券投资基金
-    exchange: SSE
-    vehicle_type: ETF
-    tracking_index_code: "931238"
-    tracking_index_name: 中证沪深港黄金产业股票指数
-    mapping_class: REJECTED_SEMANTIC_MISMATCH
-    approval_status: UNREVIEWED
-    list_date: 2023-11-01
-    delist_date: null
-    mapping_effective_from: 2023-11-01
-    mapping_effective_to: null
-    cross_border: true
-    qdii: false
-    data_semantics: CURRENT_SURVIVOR_WITH_OFFICIAL_PRODUCT_HISTORY
-    evidence:
-      - source_type: SSE_OFFICIAL_LISTING_NOTICE
-        source_url: https://www.sse.com.cn/disclosure/announcement/listing/c/c_20231031_5728245.shtml
-        retrieved_at: 2026-09-04T15:00:27+08:00
-        claim: Official SSE notice identifies 517520 as a listed ETF from 2023-11-01.
-        official: true
-        evidence_scopes: [VEHICLE_IDENTITY, LISTING_PERIOD, CURRENT_EXISTENCE]
-      - source_type: CSINDEX_OFFICIAL_METHODOLOGY
-        source_url: https://oss-ch.csindex.com.cn/static/html/csindex/public/uploads/indices/detail/files/zh_CN/931238_Index_Methodology_cn.pdf
-        retrieved_at: 2026-09-04T15:00:27+08:00
-        claim: Index 931238 holds gold-industry equities and is not an Au99.99 spot-gold instrument.
-        official: true
-        evidence_scopes: [TRACKING_INDEX, SEMANTIC_MISMATCH]
-    notes: >-
-      Explicitly rejected semantic mismatch: gold-miner equities are not the
-      frozen spot-gold Logical Asset. Rejection is evidence classification, not
-      performance inference.
-
-  - logical_asset_id: BOND_LONG
-    vehicle_symbol: 511260.SH
-    fund_name: 上证10年期国债交易型开放式指数证券投资基金
-    exchange: SSE
-    vehicle_type: ETF
+  BOND_LONG:
+    tracking_index_provider: CSINDEX
     tracking_index_code: H11077
     tracking_index_name: 上证10年期国债指数
-    mapping_class: EXACT_TRACKING
-    approval_status: UNREVIEWED
-    list_date: 2017-08-24
-    delist_date: null
-    mapping_effective_from: 2017-08-24
-    mapping_effective_to: null
-    cross_border: false
-    qdii: false
-    data_semantics: CURRENT_SURVIVOR_WITH_OFFICIAL_PRODUCT_HISTORY
-    evidence:
-      - source_type: SSE_OFFICIAL_FUND_ANNOUNCEMENT
-        source_url: https://www.sse.com.cn/disclosure/fund/announcement/c/new/2026-03-19/511260_20260319_NNHW.pdf
-        retrieved_at: 2026-09-04T15:00:27+08:00
-        claim: Official fund document identifies 511260, its 2017-08-24 listing date, and H11077 tracking objective.
-        official: true
-        evidence_scopes: [VEHICLE_IDENTITY, LISTING_PERIOD, TRACKING_INDEX, CURRENT_EXISTENCE]
-      - source_type: CSINDEX_OFFICIAL_FACTSHEET
-        source_url: https://oss-ch.csindex.com.cn/static/html/csindex/public/uploads/indices/detail/files/zh_CN/H11077factsheet.pdf
-        retrieved_at: 2026-09-04T15:00:27+08:00
-        claim: CSI factsheet defines H11077 as the 10-year Treasury full-price index, not a yield-change series.
-        official: true
-        evidence_scopes: [TRACKING_INDEX]
-    notes: Exact full-price bond-index candidate; no yield-series substitution.
+    canonical_index_id: SSE_10Y_TREASURY_FULL_PRICE
+    tracking_return_variant: FULL_PRICE_INDEX
+    mapping_class: EXACT_BENCHMARK
+    notes: H11077 full-price return semantics match the frozen long-duration benchmark; no yield-change substitute is allowed.
+    vehicles:
+      - {vehicle_symbol: 511260.SH, fund_name: 十年国债ETF国泰, list_date: 2017-08-24, evidence_refs: [SSE_CURRENT_ETF_TABLE]}
+      - {vehicle_symbol: 511020.SH, fund_name: 活跃国债ETF平安, list_date: 2019-02-22, tracking_index_code: "931018", tracking_index_name: 中证5-10年期国债活跃券指数, canonical_index_id: null, mapping_class: ECONOMIC_PROXY_CANDIDATE, evidence_refs: [SSE_CURRENT_ETF_TABLE], notes: Different maturity-bucket and active-bond methodology; retained only as a duration proxy.}
 
-  - logical_asset_id: BOND_MED
-    vehicle_symbol: 511010.SH
-    fund_name: 上证5年期国债交易型开放式指数证券投资基金
-    exchange: SSE
-    vehicle_type: ETF
+  BOND_MED:
+    tracking_index_provider: CSINDEX
     tracking_index_code: H00140
     tracking_index_name: 上证5年期国债指数
-    mapping_class: EXACT_TRACKING
-    approval_status: UNREVIEWED
-    list_date: 2013-03-25
-    delist_date: null
-    mapping_effective_from: 2013-03-25
-    mapping_effective_to: null
-    cross_border: false
-    qdii: false
-    data_semantics: CURRENT_SURVIVOR_WITH_OFFICIAL_PRODUCT_HISTORY
-    evidence:
-      - source_type: SSE_OFFICIAL_FUND_ANNOUNCEMENT
-        source_url: https://www.sse.com.cn/disclosure/fund/announcement/c/new/2023-11-21/511010_20231121_R9T6.pdf
-        retrieved_at: 2026-09-04T15:00:27+08:00
-        claim: Official fund document identifies 511010, its 2013-03-25 listing date, and H00140 tracking objective.
-        official: true
-        evidence_scopes: [VEHICLE_IDENTITY, LISTING_PERIOD, TRACKING_INDEX, CURRENT_EXISTENCE]
-      - source_type: CSINDEX_OFFICIAL_FACTSHEET
-        source_url: https://oss-ch.csindex.com.cn/static/html/csindex/public/uploads/indices/detail/files/zh_CN/H00140factsheet.pdf
-        retrieved_at: 2026-09-04T15:00:27+08:00
-        claim: CSI factsheet defines H00140 as the 5-year Treasury full-price index, not a yield-change series.
-        official: true
-        evidence_scopes: [TRACKING_INDEX]
-    notes: Exact full-price bond-index candidate; no yield-series substitution.
+    canonical_index_id: SSE_5Y_TREASURY_FULL_PRICE
+    tracking_return_variant: FULL_PRICE_INDEX
+    mapping_class: EXACT_BENCHMARK
+    notes: H00140 full-price return semantics match the frozen medium-duration benchmark; no yield-change substitute is allowed.
+    vehicles:
+      - {vehicle_symbol: 511010.SH, fund_name: 国债ETF国泰, list_date: 2013-03-25, evidence_refs: [SSE_CURRENT_ETF_TABLE]}
 
 non_vehicle_logical_assets:
   CASH:
     execution_mode: CASH_BALANCE
     vehicle_required: false
-    notes: CASH is represented as a cash balance and must not be assigned an ETF vehicle.
+    notes: CASH remains a balance and has no ETF candidate.
